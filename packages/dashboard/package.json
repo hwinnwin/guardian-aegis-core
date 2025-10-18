@@ -1,0 +1,18 @@
+{
+  "name": "@guardian/dashboard",
+  "version": "0.1.0",
+  "description": "Phase 4: Parent dashboard for Guardian child protection",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "echo 'Dashboard build - Phase 4'",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "dashboard",
+    "parent-controls",
+    "child-protection",
+    "guardian"
+  ],
+  "author": "Guardian Protection Team",
+  "license": "MIT"
+}

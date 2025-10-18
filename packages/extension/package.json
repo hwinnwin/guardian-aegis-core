@@ -1,0 +1,19 @@
+{
+  "name": "@guardian/extension",
+  "version": "0.1.0",
+  "description": "Phase 3: Browser extension for Guardian child protection",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "echo 'Extension build - Phase 3'",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "browser-extension",
+    "chrome",
+    "firefox",
+    "child-protection",
+    "guardian"
+  ],
+  "author": "Guardian Protection Team",
+  "license": "MIT"
+}
