@@ -1,11 +1,14 @@
 {
   "name": "@guardian/dashboard",
   "version": "0.1.0",
-  "description": "Phase 4: Parent dashboard for Guardian child protection",
+  "description": "Lumen Guardian QA + parent dashboard",
   "main": "dist/index.js",
   "scripts": {
     "build": "echo 'Dashboard build - Phase 4'",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "dashboard",
@@ -13,6 +16,18 @@
     "child-protection",
     "guardian"
   ],
-  "author": "Guardian Protection Team",
-  "license": "MIT"
+  "author": "Lumen Guardian Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.8"
+  }
 }

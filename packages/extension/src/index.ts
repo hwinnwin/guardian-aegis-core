@@ -1,17 +1,20 @@
-/**
- * @guardian/extension
- * 
- * Phase 3: Browser extension
- * 
- * Coming soon:
- * - Chrome/Firefox/Edge support
- * - Platform integrations (Discord, Instagram, Snapchat, TikTok, etc.)
- * - Real-time message interception
- * - Privacy-first architecture (all processing local by default)
- * - Parent permission system
- * - Emergency alert system
- */
-
-export function placeholder() {
-  console.log('Extension package - Phase 3 coming soon');
-}
+export * from './core/bootstrap';
+export * from './core/block-ui';
+export * from './core/env';
+export * from './core/device-key';
+export * from './services/action-router.service';
+export * from './services/alerts.service';
+export * from './services/alerts.store';
+export * from './services/evidence.service';
+export * from './services/evidence.store';
+export * from './services/lockdown.service';
+export * from './services/appeal.store';
+export * from './types/incidents';
+export * from './detection/engine';
+export * from './detection/normalize';
+export * from './detection/featurize';
+export * from './detection/classifier';
+export * from './detection/decide';
+export * from './types/classifier';
+export * from './detection/tips';
+export * from './ui/edu-card';

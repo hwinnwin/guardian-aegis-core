@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# Lumen Guardian
 
-## Project info
+Lumen Guardian is a privacy-first safety layer for families. The browser extension monitors conversations locally, blocks grooming attempts in real time, and lets parents review sealed evidence with a PIN. All analytics, training data, and telemetry stay on the device—no cloud required.
 
-**URL**: https://lovable.dev/projects/0beaf183-00a8-47d3-b911-29841be6fc6b
+## Monorepo layout
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/0beaf183-00a8-47d3-b911-29841be6fc6b) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+guardian-aegis-core-main/
+├── packages/
+│   ├── extension/   # MV3 browser extension (alpha)
+│   ├── dashboard/   # QA + parent dashboard SPA
+│   ├── buffer/      # High-performance rolling buffer library
+│   └── detector/    # Future detection engine package (placeholder)
+├── assets/          # Store-ready icons, screenshots, hero artwork
+├── docs/            # Alpha testing guide & release notes
+└── PRIVACY.md / SECURITY.md / SAFEGUARDS.md
 ```
 
-**Edit a file directly in GitHub**
+## Getting started
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+pnpm install
 
-**Use GitHub Codespaces**
+# Run package tests
+pnpm -w test
+# Or individually
+pnpm -F @guardian/extension test
+pnpm -F @guardian/dashboard test
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+To build the extension:
 
-## What technologies are used for this project?
+```bash
+pnpm -F @guardian/extension build
+pnpm -F @guardian/extension zip  # produces guardian-extension.zip
+```
 
-This project is built with:
+Load `packages/extension/dist` as an unpacked extension in Chrome for local development.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Calibration & QA workflow
 
-## How can I deploy this project?
+1. Toggle shadow mode (`localStorage.guardian_shadow = "1"`) to compare fast-path rules with the layer-1 classifier.
+2. Use the dashboard QA page to inspect:
+   - Analytics panel (detections, shadow agreement, lockouts)
+   - Rule simulator & inspector (severity, notes, false-positive hints)
+   - Trainer panel to capture appeals and retrain the classifier
+   - Tuner panel to adjust thresholds using live shadow stats
+   - Corpus runner for quick FP/FN sweeps across sample text
+3. Export updated models/thresholds via the trainer or tuner and verify them with the smoke checklist in `RELEASE-CHECKLIST.md`.
 
-Simply open [Lovable](https://lovable.dev/projects/0beaf183-00a8-47d3-b911-29841be6fc6b) and click on Share -> Publish.
+## Release checklist (alpha)
 
-## Can I connect a custom domain to my Lovable project?
+- `pnpm -w test`
+- `pnpm -F @guardian/extension build && pnpm -F @guardian/extension zip`
+- QA page smoke: Analytics, Simulator, Trainer, Tuner, Corpus Runner, Rule Inspector, Docs links
+- Manual Chrome smoke: block → alert → PIN unlock; recovery reset + nuke reset
+- Optional: enable shadow mode and inspect classifier agreement
+- Confirm MV3 service worker stays healthy (chrome://extensions)
 
-Yes, you can!
+More detailed guidance lives in `docs/ALPHA.md`.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Support & documentation
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- [Privacy Promise](./PRIVACY.md)
+- [Security Overview](./SECURITY.md)
+- [Safeguards & parental controls](./SAFEGUARDS.md)
+- [Alpha testing notes](./docs/ALPHA.md)
+
+For feedback or partnership enquiries, reach out at **hello@lumenguardian.app**.

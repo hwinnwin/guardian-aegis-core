@@ -1,17 +1,15 @@
-/**
- * @guardian/dashboard
- * 
- * Phase 4: Parent dashboard
- * 
- * Coming soon:
- * - Snapshot viewer (review flagged interactions)
- * - Threat timeline (chronological view of concerns)
- * - Alert management (notifications, escalation)
- * - Privacy controls (data retention, export, deletion)
- * - User management (multiple children, permissions)
- * - Reporting system (export evidence for authorities)
- */
-
-export function placeholder() {
-  console.log('Dashboard package - Phase 4 coming soon');
-}
+export * from './api/alerts.local';
+export * from './api/evidence.local';
+export * from './api/audit.local';
+export * from './components/AlertsList';
+export * from './components/UnlockDialog';
+export * from './components/ParentAuthDialog';
+export * from './components/AnalyticsPanel';
+export * from './components/RuleSimulator';
+export * from './components/TrainerPanel';
+export * from './components/TunerPanel';
+export * from './components/CorpusRunner';
+export * from './components/RuleInspector';
+export * from './components/DocsLinks';
+export * from './services/decrypt.service';
+export * from './core/env';

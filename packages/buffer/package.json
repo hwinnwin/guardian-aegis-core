@@ -1,7 +1,7 @@
 {
   "name": "@guardian/buffer",
   "version": "1.0.0",
-  "description": "High-performance rolling buffer system for Guardian child protection",
+  "description": "High-performance rolling buffer system for Lumen Guardian",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -18,7 +18,7 @@
     "child-protection",
     "guardian"
   ],
-  "author": "Guardian Protection Team",
+  "author": "Lumen Guardian Team",
   "license": "MIT",
   "dependencies": {
     "nanoid": "^5.0.4"

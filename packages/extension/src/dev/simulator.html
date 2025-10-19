@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Guardian Rule Simulator</title>
+<style>
+  body { font: 14px system-ui; margin: 20px; color: #111; }
+  textarea { width: 100%; height: 140px; font: inherit; }
+  button { margin-top: 8px; padding: 6px 12px; font: inherit; }
+  pre { margin-top: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px; }
+</style>
+<h1>Rule Simulator</h1>
+<p>Paste text to see which rules match on the fast path.</p>
+<textarea id="txt" placeholder="Paste message..."></textarea>
+<button id="run">Detect</button>
+<pre id="out"></pre>
+<script type="module">
+  import rulesYaml from '../detection/rules.fast.yaml?raw';
+  import { loadRules, detectFastPath } from '../detection/engine';
+  import { emojiHints, foldBasic } from '../detection/normalize';
+
+  loadRules(rulesYaml);
+
+  const txt = document.getElementById('txt');
+  const run = document.getElementById('run');
+  const out = document.getElementById('out');
+
+  run.addEventListener('click', () => {
+    const raw = txt.value;
+    const folded = foldBasic(emojiHints(raw));
+    const hits = detectFastPath(raw);
+    out.textContent = JSON.stringify({ raw, folded, hits }, null, 2);
+  });
+</script>
