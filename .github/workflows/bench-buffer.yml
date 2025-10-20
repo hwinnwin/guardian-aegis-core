@@ -110,8 +110,20 @@ jobs:
 
       - name: Run JSON benchmark (forced, 5m cap; NDJSON -> bench-buffer.json)
         shell: bash
-        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5_with_tee bench-buffer.out bench-buffer.json pnpm bench:buffer:json:force"
+        run: |
+          bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5_with_tee bench-run.log bench-buffer.json pnpm bench:buffer:json:force"
+          cp bench-run.log bench-buffer.out || true
 
+      - name: Hash artifacts (JSON only)
+        if: always()
+        shell: bash
+        run: |
+          if [ -f bench-buffer.json ]; then
+            (command -v shasum >/dev/null && shasum -a 256 bench-buffer.json || sha256sum bench-buffer.json) | awk '{print $1}' > bench-buffer.sha256
+            echo "bench-buffer.json SHA256: $(cat bench-buffer.sha256)"
+          else
+            echo "bench-buffer.json missing; skipping hash."
+          fi
       - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -119,6 +131,7 @@ jobs:
           path: |
             bench-buffer.json
             bench-buffer.out
+            bench-buffer.sha256
             packages/buffer/BENCHMARKS.md
           if-no-files-found: warn
           retention-days: 14
@@ -222,19 +235,12 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const crypto = require('crypto');
             const { owner, repo } = context.repo;
             const runId = context.runId;
             const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
             const f = './bench-artifacts/bench-buffer.json';
-            let sha = null;
-            if (fs.existsSync(f)) {
-              try {
-                sha = crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
-              } catch (error) {
-                sha = null;
-              }
-            }
+            const h = './bench-artifacts/bench-buffer.sha256';
+            const sha = fs.existsSync(h) ? fs.readFileSync(h, 'utf8').trim() : 'n/a';
             let body;
             if (fs.existsSync(f)) {
               const lines = fs.readFileSync(f, 'utf8').trim().split('\n');
@@ -252,7 +258,7 @@ jobs:
                 `**p95 Latency:** ${p95}`,
                 `**Memory/op:** ${mem}`,
                 `**Peak RSS:** ${rss}`,
-                ...(sha ? ['', `**Artifact SHA256:** \`${sha}\``] : []),
+                `**JSON SHA256:** \`${sha}\``,
                 '',
                 `[Artifacts & logs](${artifactUrl})`,
                 '',
