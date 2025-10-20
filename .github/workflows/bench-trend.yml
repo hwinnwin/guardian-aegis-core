@@ -1,0 +1,235 @@
+name: Weekly Buffer Bench Trend
+
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  bench-macos:
+    name: macOS bench (weekly)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      JSON_OUTPUT: "1"
+      BENCH_FORCE_EXIT: "1"
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: 'pnpm'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Prepare helpers (5m guard)
+        shell: bash
+        run: |
+          mkdir -p .github/scripts
+          cat > .github/scripts/ci_helpers.sh <<'SH'
+          set -Eeuo pipefail
+          run5_with_tee() {
+            local log="$1"; local out="$2"; shift 2
+            : > "$log"; : > "$out"
+            ( "$@" ) > >(tee -a "$log" | tee "$out") 2> >(tee -a "$log" >&2) &
+            cmd_pid=$!
+            (
+              for i in $(seq 1 300); do
+                if ! kill -0 "$cmd_pid" 2>/dev/null; then exit 0; fi
+                sleep 1
+              done
+              echo "::error::Step exceeded 5 minutes, killing PID $cmd_pid"
+              kill -9 "$cmd_pid" 2>/dev/null || true
+              exit 124
+            ) &
+            wd_pid=$!
+            wait "$cmd_pid"; rc=$?
+            kill "$wd_pid" 2>/dev/null || true
+            if [ $rc -ne 0 ]; then
+              echo "----- FAILURE DIAGNOSTICS ($log) -----"
+              grep -m1 -Ei '(^|[^a-zA-Z])(error|fail|exception|traceback|panic|fatal)([^a-zA-Z]|$)' "$log" || true
+              echo "----- LAST 30 LINES -----"
+              tail -n 30 "$log" || true
+            fi
+            return $rc
+          }
+          SH
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Run weekly JSON bench (NDJSON -> bench-buffer.json)
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5_with_tee bench-run.log bench-buffer.json pnpm bench:buffer:json:force"
+      - name: Copy human log
+        run: cp bench-run.log bench-buffer.out || true
+      - name: Hash JSON
+        if: always()
+        shell: bash
+        run: |
+          if [ -f bench-buffer.json ]; then
+            (command -v shasum >/dev/null && shasum -a 256 bench-buffer.json || sha256sum bench-buffer.json) | awk '{print $1}' > bench-buffer.sha256
+            echo "bench-buffer.json SHA256: $(cat bench-buffer.sha256)"
+          fi
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: buffer-bench
+          path: |
+            bench-buffer.json
+            bench-buffer.out
+            bench-buffer.sha256
+            packages/buffer/BENCHMARKS.md
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Step summary (macOS)
+        if: always()
+        run: |
+          if [ -f bench-buffer.json ]; then
+            node - <<'NODE'
+            const fs = require('fs');
+            const lines = fs.readFileSync('bench-buffer.json','utf8').trim().split('\n');
+            const recs = lines.map(l=>{try{return JSON.parse(l)}catch{return null}}).filter(Boolean);
+            const s = [...recs].reverse().find(r=>r.type==='summary') ?? recs.at(-1);
+            const m = s?.metrics ?? {};
+            const thr = m.throughputPerSec ? m.throughputPerSec.toLocaleString(undefined,{maximumFractionDigits:0}) : 'n/a';
+            const p95 = m.latency?.p95Ms!=null ? m.latency.p95Ms.toFixed(3)+' ms' : 'n/a';
+            const mem = m.memory?.bytesPerInteraction!=null ? m.memory.bytesPerInteraction.toFixed(0)+' B' : 'n/a';
+            const rss = m.rssPeakMB!=null ? m.rssPeakMB.toFixed(2)+' MB' : 'n/a';
+            const out = [
+              '### Weekly Bench (macOS) Summary',
+              '',
+              `- Throughput: ${thr} ops/s`,
+              `- p95 Latency: ${p95}`,
+              `- Memory/op: ${mem}`,
+              `- Peak RSS: ${rss}`
+            ].join('\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out + '\n');
+            NODE
+          else
+            echo "No bench-buffer.json; skipping summary" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  trend-linux:
+    name: Aggregate trend + sticky comment
+    runs-on: ubuntu-latest
+    needs: bench-macos
+    if: always()
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+      TREND_N: "6"
+      BENCH_WORKFLOW_FILE: "bench-buffer.yml"
+      BENCH_ARTIFACT_NAME: "buffer-bench"
+    steps:
+      - name: Checkout (scripts)
+        uses: actions/checkout@v4
+      - name: Prepare tools
+        shell: bash
+        run: |
+          sudo apt-get update -y >/dev/null 2>&1 || true
+          sudo apt-get install -y jq unzip >/dev/null 2>&1 || true
+          gh --version
+      - name: Fetch last N successful bench artifacts from main
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p trend/raw trend/json
+          WF_ID=$(gh api "repos/${OWNER}/${{ github.event.repository.name }}/actions/workflows" --jq ".workflows[] | select(.path==\".github/workflows/${BENCH_WORKFLOW_FILE}\") | .id")
+          if [ -z "${WF_ID:-}" ]; then
+            echo "Workflow ${BENCH_WORKFLOW_FILE} not found"; exit 1
+          fi
+          RUN_IDS=$(gh api "repos/${OWNER}/${{ github.event.repository.name }}/actions/workflows/${WF_ID}/runs?branch=main&status=success&per_page=30" --jq ".workflow_runs[].id" | head -n "${TREND_N}")
+          for RUN_ID in $RUN_IDS; do
+            ART_ID=$(gh api "repos/${OWNER}/${{ github.event.repository.name }}/actions/runs/${RUN_ID}/artifacts" --jq ".artifacts[] | select(.name==\"${BENCH_ARTIFACT_NAME}\") | .id" | head -n1 || true)
+            if [ -z "${ART_ID:-}" ]; then
+              continue
+            fi
+            ZIP="trend/raw/a${RUN_ID}.zip"
+            gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "repos/${OWNER}/${{ github.event.repository.name }}/actions/artifacts/${ART_ID}/zip" > "$ZIP"
+            unzip -p "$ZIP" bench-buffer.json > "trend/json/${RUN_ID}.ndjson" || true
+          done
+      - name: Build trend table
+        id: trend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const dir = 'trend/json';
+          if (!fs.existsSync(dir)) { console.log('::warning::No NDJSON summaries found'); process.exit(0); }
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.ndjson'))
+            .map(f => ({ f, t: fs.statSync(path.join(dir,f)).mtimeMs }))
+            .sort((a,b)=>b.t-a.t)
+            .map(x=>x.f);
+          const rows = [];
+          for (const f of files) {
+            const p = path.join(dir, f);
+            const lines = fs.readFileSync(p,'utf8').trim().split('\n').map(l=>{try{return JSON.parse(l)}catch{return null}}).filter(Boolean);
+            const s = [...lines].reverse().find(r => r.type === 'summary') ?? lines.at(-1);
+            if (!s) continue;
+            const m = s.metrics ?? s;
+            const runId = path.basename(f, '.ndjson');
+            rows.push({ runId,
+              throughput: m.throughputPerSec ?? null,
+              p95: m.latency?.p95Ms ?? null,
+              mem: m.memory?.bytesPerInteraction ?? null,
+              rss: m.rssPeakMB ?? null });
+          }
+          if (!rows.length) { console.log('::warning::No summaries parsed'); process.exit(0); }
+          const latest = rows[0];
+          const prev = rows.slice(1);
+          const mean = arr => arr.length ? arr.reduce((a,b)=>a+(b??0),0)/arr.length : null;
+          const fmt = (n,d=0) => n==null ? 'n/a' : n.toLocaleString(undefined,{maximumFractionDigits:d});
+          const pct = (a,b) => (a==null||b==null||b===0) ? null : (((a-b)/b)*100);
+          const prevAvg = {
+            throughput: mean(prev.map(x=>x.throughput)),
+            p95: mean(prev.map(x=>x.p95)),
+            mem: mean(prev.map(x=>x.mem)),
+            rss: mean(prev.map(x=>x.rss)),
+          };
+          const delta = {
+            throughput: pct(latest.throughput, prevAvg.throughput),
+            p95: pct(prevAvg.p95, latest.p95) ? -pct(prevAvg.p95, latest.p95) : null,
+            mem: pct(prevAvg.mem, latest.mem) ? -pct(prevAvg.mem, latest.mem) : null,
+            rss: pct(prevAvg.rss, latest.rss) ? -pct(prevAvg.rss, latest.rss) : null,
+          };
+          const header = `### 🗓 Weekly Buffer Bench Trend (last ${rows.length})\n\n| Run | Throughput (ops/s) | p95 (ms) | Mem/op (B) | RSS (MB) |\n|---|---:|---:|---:|---:|\n`;
+          const linesOut = rows.map(r => `| #${r.runId} | ${fmt(r.throughput,0)} | ${fmt(r.p95,3)} | ${fmt(r.mem,0)} | ${fmt(r.rss,2)} |`);
+          const fmtDelta = (x) => x==null ? 'n/a' : `${x>=0?'+':''}${x.toFixed(2)}%`;
+          const deltaLine = `\n**Δ vs prev avg:** throughput ${fmtDelta(delta.throughput)} · p95 ${fmtDelta(delta.p95)} · mem/op ${fmtDelta(delta.mem)} · RSS ${fmtDelta(delta.rss)}\n`;
+          const md = header + linesOut.join('\n') + deltaLine + '\n<!-- bench-weekly-trend -->\n';
+          fs.writeFileSync('trend/TREND.md', md);
+          console.log(md);
+          NODE
+          echo "md<<EOF" >> $GITHUB_OUTPUT
+          cat trend/TREND.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Post/update sticky trend comment (Issue #1)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const issue_number = 1;
+            let body = core.getInput('md');
+            if (!body) {
+              body = fs.existsSync('trend/TREND.md') ? fs.readFileSync('trend/TREND.md','utf8') : 'No trend data available.';
+            }
+            const existing = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const prev = existing.data.find(c => c.user?.type === 'Bot' && c.body?.includes('<!-- bench-weekly-trend -->'));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
