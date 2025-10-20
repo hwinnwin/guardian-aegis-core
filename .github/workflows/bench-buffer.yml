@@ -1,0 +1,119 @@
+name: Buffer Bench & Validate
+
+on:
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'packages/buffer/**'
+      - 'scripts/**'
+      - '.github/workflows/bench-buffer.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch: {}
+
+jobs:
+  bench:
+    name: macOS bench + validate
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: bench-buffer-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      JSON_OUTPUT: "1"
+      BENCH_FORCE_EXIT: "1"
+      CI: "true"
+      BENCH_THR_MIN: ${{ vars.BENCH_THR_MIN }}
+      BENCH_P95_MAX_MS: ${{ vars.BENCH_P95_MAX_MS }}
+      BENCH_MEM_PER_OP_MAX: ${{ vars.BENCH_MEM_PER_OP_MAX }}
+      BENCH_RSS_MAX_MB: ${{ vars.BENCH_RSS_MAX_MB }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Smoke deterministic exit
+        run: pnpm bench:buffer:smoke
+
+      - name: Run JSON benchmark (forced)
+        run: pnpm bench:buffer:json:force | tee bench-buffer.json
+
+      - name: Validate metrics
+        run: node scripts/check-bench-json.mjs bench-buffer.json
+
+      - name: Stamp BENCHMARKS metadata
+        run: node scripts/update-bench-metadata.mjs || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: buffer-bench-${{ github.run_id }}
+          path: |
+            bench-buffer.json
+            bench-buffer.out
+            packages/buffer/BENCHMARKS.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Comment summary on PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'bench-buffer.json';
+            if (!fs.existsSync(path)) {
+              core.warning('bench-buffer.json not found; skipping PR comment.');
+              return;
+            }
+            const lines = fs.readFileSync(path, 'utf8').trim().split('\n');
+            const records = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+            const summary = [...records].reverse().find(r => r.type === 'summary') ?? records.at(-1);
+            if (!summary) {
+              core.warning('No summary object found in bench-buffer.json; skipping PR comment.');
+              return;
+            }
+            const m = summary.metrics ?? summary;
+            const thr = m.throughputPerSec !== undefined ? m.throughputPerSec.toLocaleString(undefined, {maximumFractionDigits: 0}) : 'n/a';
+            const p95 = m.latency?.p95Ms !== undefined ? m.latency.p95Ms.toFixed(3) + ' ms' : 'n/a';
+            const mem = m.memory?.bytesPerInteraction !== undefined ? m.memory.bytesPerInteraction.toFixed(0) + ' B' : 'n/a';
+            const rss = m.rssPeakMB !== undefined ? m.rssPeakMB.toFixed(2) + ' MB' : 'n/a';
+            const status = '${{ job.status }}';
+            const badge = status === 'success' ? '✅' : '⚠️';
+            const body = [
+              `### ${badge} Buffer Bench Summary`,
+              '',
+              `**Throughput:** ${thr} ops/s`,
+              `**p95 Latency:** ${p95}`,
+              `**Memory/op:** ${mem}`,
+              `**Peak RSS:** ${rss}`,
+              '',
+              '_Workflow: Buffer Bench & Validate_',
+              '<!-- bench-buffer-summary -->'
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const existing = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const prev = existing.data.find(c => c.user?.type === 'Bot' && c.body?.includes('<!-- bench-buffer-summary -->'));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
