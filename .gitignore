@@ -9,13 +9,21 @@ tmp/
 *.tmp
 *.swp
 /.vite
-node_modules
+
+# Environment / secrets
 .env
 .env.local
+.npmrc
+.npm-cache/
+.npm-global/
+
+# Lockfiles generated locally but not committed
 pnpm-lock.yaml
-bench-buffer.out
+
+# CI benchmark artifacts
 bench-buffer.json
+bench-buffer.out
+bench-buffer.sha256
+
+# Tooling logs
 codex/logs/
-coverage/
-dist/
-.DS_Store
