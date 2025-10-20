@@ -1,3 +1,5 @@
+[![Buffer Bench & Validate](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/bench-buffer.yml/badge.svg)](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/bench-buffer.yml)
+
 # Lumen Guardian — Beta Build
 
 Light for safety. Privacy by design.
