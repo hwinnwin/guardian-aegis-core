@@ -42,11 +42,50 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Smoke deterministic exit
-        run: pnpm bench:buffer:smoke
+      - name: Prepare helpers (5m guard + diagnostics)
+        shell: bash
+        run: |
+          mkdir -p .github/scripts
+          cat > .github/scripts/ci_helpers.sh <<'SH'
+          set -Eeuo pipefail
+          run5() {
+            local log="$1"; shift
+            : > "$log"
+            ( "$@" ) > >(tee -a "$log") 2> >(tee -a "$log" >&2) &
+            local cmd_pid=$!
+            (
+              for i in $(seq 1 300); do
+                if ! kill -0 "$cmd_pid" 2>/dev/null; then exit 0; fi
+                sleep 1
+              done
+              echo "::error::Step exceeded 5 minutes, killing PID $cmd_pid"
+              kill -9 "$cmd_pid" 2>/dev/null || true
+              exit 124
+            ) &
+            local watchdog_pid=$!
+            wait "$cmd_pid"; local rc=$?
+            kill "$watchdog_pid" 2>/dev/null || true
+            if [ $rc -ne 0 ]; then
+              echo "----- FAILURE DIAGNOSTICS ($log) -----"
+              grep -m1 -Ei '(^|[^a-zA-Z])(error|fail|exception|traceback)([^a-zA-Z]|$)' "$log" || true
+              echo "----- LAST 30 LINES -----"
+              tail -n 30 "$log" || true
+            fi
+            return $rc
+          }
+          SH
+          chmod +x .github/scripts/ci_helpers.sh
 
-      - name: Run JSON benchmark (forced)
-        run: pnpm bench:buffer:json:force | tee bench-buffer.json
+      - name: Smoke deterministic exit (5m cap)
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 smoke-run.log pnpm bench:buffer:smoke"
+
+      - name: Run JSON benchmark (forced, 5m cap)
+        shell: bash
+        run: |
+          bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 bench-run.log pnpm bench:buffer:json:force"
+          cp bench-run.log bench-buffer.out
+          perl -ne 'print if /^[\\[{]/' bench-run.log > bench-buffer.json
 
       - name: Stamp BENCHMARKS metadata
         run: node scripts/update-bench-metadata.mjs || true
@@ -92,52 +131,103 @@ jobs:
       - name: Install deps (for validator)
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare helpers (5m guard + diagnostics)
+        shell: bash
+        run: |
+          mkdir -p .github/scripts
+          cat > .github/scripts/ci_helpers.sh <<'SH'
+          set -Eeuo pipefail
+          run5() {
+            local log="$1"; shift
+            : > "$log"
+            ( "$@" ) > >(tee -a "$log") 2> >(tee -a "$log" >&2) &
+            local cmd_pid=$!
+            (
+              for i in $(seq 1 300); do
+                if ! kill -0 "$cmd_pid" 2>/dev/null; then exit 0; fi
+                sleep 1
+              done
+              echo "::error::Step exceeded 5 minutes, killing PID $cmd_pid"
+              kill -9 "$cmd_pid" 2>/dev/null || true
+              exit 124
+            ) &
+            local watchdog_pid=$!
+            wait "$cmd_pid"; local rc=$?
+            kill "$watchdog_pid" 2>/dev/null || true
+            if [ $rc -ne 0 ]; then
+              echo "----- FAILURE DIAGNOSTICS ($log) -----"
+              grep -m1 -Ei '(^|[^a-zA-Z])(error|fail|exception|traceback)([^a-zA-Z]|$)' "$log" || true
+              echo "----- LAST 30 LINES -----"
+              tail -n 30 "$log" || true
+            fi
+            return $rc
+          }
+          SH
+          chmod +x .github/scripts/ci_helpers.sh
+
       - name: Download macOS bench artifacts
         uses: actions/download-artifact@v4
         with:
           name: buffer-bench
           path: ./bench-artifacts
 
-      - name: Validate metrics (Linux)
-        run: node scripts/check-bench-json.mjs ./bench-artifacts/bench-buffer.json
+      - name: Validate metrics (Linux, 5m cap)
+        shell: bash
+        run: |
+          . .github/scripts/ci_helpers.sh
+          if [ -f ./bench-artifacts/bench-buffer.json ]; then
+            run5 validate-run.log node scripts/check-bench-json.mjs ./bench-artifacts/bench-buffer.json
+          else
+            echo "bench-buffer.json artifact not found; benchmarking job may have failed." | tee -a validate-run.log
+            exit 1
+          fi
 
-      - name: Comment summary on PR (sticky)
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Comment summary on PR (sticky with run link)
+        if: ${{ always() && github.event_name == 'pull_request' }}
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const filePath = './bench-artifacts/bench-buffer.json';
-            if (!fs.existsSync(filePath)) {
-              core.warning('bench-buffer.json not found in artifact; skipping PR comment.');
-              return;
-            }
-            const lines = fs.readFileSync(filePath, 'utf8').trim().split('\n');
-            const records = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
-            const summary = [...records].reverse().find(record => record.type === 'summary') ?? records.at(-1);
-            if (!summary) {
-              core.warning('No summary object found in bench-buffer.json; skipping PR comment.');
-              return;
-            }
-            const metrics = summary.metrics ?? summary;
-            const throughput = metrics.throughputPerSec !== undefined
-              ? metrics.throughputPerSec.toLocaleString(undefined, { maximumFractionDigits: 0 })
-              : 'n/a';
-            const p95 = metrics.latency?.p95Ms !== undefined ? metrics.latency.p95Ms.toFixed(3) + ' ms' : 'n/a';
-            const memory = metrics.memory?.bytesPerInteraction !== undefined ? metrics.memory.bytesPerInteraction.toFixed(0) + ' B' : 'n/a';
-            const rss = metrics.rssPeakMB !== undefined ? metrics.rssPeakMB.toFixed(2) + ' MB' : 'n/a';
-            const body = [
-              '### 🧪 Buffer Bench Summary (macOS run)',
-              '',
-              `**Throughput:** ${throughput} ops/s`,
-              `**p95 Latency:** ${p95}`,
-              `**Memory/op:** ${memory}`,
-              `**Peak RSS:** ${rss}`,
-              '',
-              '_Workflow: Buffer Bench & Validate_',
-              '<!-- bench-buffer-summary -->'
-            ].join('\n');
             const { owner, repo } = context.repo;
+            const runId = context.runId;
+            const artifactUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+            const filePath = './bench-artifacts/bench-buffer.json';
+            let body;
+            if (fs.existsSync(filePath)) {
+              const lines = fs.readFileSync(filePath, 'utf8').trim().split('\n');
+              const records = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
+              const summary = [...records].reverse().find(record => record.type === 'summary') ?? records.at(-1);
+              const metrics = summary?.metrics ?? summary ?? {};
+              const throughput = metrics.throughputPerSec !== undefined
+                ? metrics.throughputPerSec.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                : 'n/a';
+              const p95 = metrics.latency?.p95Ms !== undefined ? metrics.latency.p95Ms.toFixed(3) + ' ms' : 'n/a';
+              const memory = metrics.memory?.bytesPerInteraction !== undefined ? metrics.memory.bytesPerInteraction.toFixed(0) + ' B' : 'n/a';
+              const rss = metrics.rssPeakMB !== undefined ? metrics.rssPeakMB.toFixed(2) + ' MB' : 'n/a';
+              body = [
+                '### 🧪 Buffer Bench Summary (macOS run)',
+                '',
+                `**Throughput:** ${throughput} ops/s`,
+                `**p95 Latency:** ${p95}`,
+                `**Memory/op:** ${memory}`,
+                `**Peak RSS:** ${rss}`,
+                '',
+                `[Artifacts & logs](${artifactUrl})`,
+                '',
+                '_Workflow: Buffer Bench & Validate_',
+                '<!-- bench-buffer-summary -->'
+              ].join('\n');
+            } else {
+              body = [
+                '### ⚠️ Buffer Bench Summary',
+                '',
+                'Benchmark artifact not found (macOS job may have failed).',
+                `[Run details](${artifactUrl})`,
+                '',
+                '_Workflow: Buffer Bench & Validate_',
+                '<!-- bench-buffer-summary -->'
+              ].join('\n');
+            }
             const issue_number = context.issue.number;
             const existing = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
             const previous = existing.data.find(comment => comment.user?.type === 'Bot' && comment.body?.includes('<!-- bench-buffer-summary -->'));
