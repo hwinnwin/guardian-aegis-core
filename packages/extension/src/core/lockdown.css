@@ -1,0 +1,4 @@
+html[data-guardian-lockdown="1"] * {
+  pointer-events: none !important;
+  user-select: none !important;
+}

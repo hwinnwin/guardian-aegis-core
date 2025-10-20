@@ -1,0 +1,55 @@
+name: Guard Branch Protection (Required Checks)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '23 4 * * 1'
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check required status checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY%%/*}"
+          repo="${GITHUB_REPOSITORY##*/}"
+          branch="main"
+          want_checks=(
+            "Buffer Bench & Validate / macOS bench (authoritative)"
+            "Buffer Bench & Validate / Linux validate + PR comment"
+            "UI & Library Quality / Lint · Test · Typecheck"
+          )
+          if ! rules=$(gh api -H "Accept: application/vnd.github+json" "repos/$owner/$repo/branches/$branch/protection" 2>/dev/null); then
+            echo "::warning::Cannot read protection rules (insufficient perms). Creating/Updating issue."
+            missing="unknown (no access)"
+          else
+            names=$(echo "$rules" | jq -r '.required_status_checks.contexts[]?')
+            missing=""
+            for c in "${want_checks[@]}"; do
+              echo "$names" | grep -Fx "$c" >/dev/null 2>&1 || missing+="$c\n"
+            done
+          fi
+          if [ -n "${missing:-}" ]; then
+            title="Branch protection: add required checks"
+            body=$'The following required checks are missing from branch protection on `main`:\n\n'
+            body+="$missing"
+            body+=$'\n\nPlease add them in Settings → Branches.\n<!-- branch-protection-guard -->'
+            num=$(gh issue list -S 'in:title branch protection: add required checks' --json number,body --jq '.[] | select(.body | contains("<!-- branch-protection-guard -->")) | .number' | head -n1)
+            if [ -n "$num" ]; then
+              gh issue comment "$num" -b "$body"
+            else
+              gh issue create -t "$title" -b "$body" >/dev/null
+            fi
+          else
+            echo "Required checks appear present."
+          fi

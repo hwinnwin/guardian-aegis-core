@@ -158,6 +158,10 @@ jobs:
             gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "repos/${OWNER}/${{ github.event.repository.name }}/actions/artifacts/${ART_ID}/zip" > "$ZIP"
             unzip -p "$ZIP" bench-buffer.json > "trend/json/${RUN_ID}.ndjson" || true
           done
+          count="$(ls -1 trend/json/*.ndjson 2>/dev/null | wc -l | tr -d ' ')"
+          if [ "${count:-0}" -eq 0 ]; then
+            echo "::error::No NDJSON summaries found for trend aggregation"; exit 1
+          fi
       - name: Build trend table
         id: trend
         shell: bash

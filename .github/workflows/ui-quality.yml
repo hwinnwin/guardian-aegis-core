@@ -1,0 +1,89 @@
+name: UI & Library Quality
+
+on:
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'packages/**'
+      - 'src/**'
+      - 'tsconfig*.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch: {}
+
+jobs:
+  quality:
+    name: Lint · Test · Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: 'pnpm'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Prepare helpers (5m guard)
+        shell: bash
+        run: |
+          mkdir -p .github/scripts
+          cat > .github/scripts/ci_helpers.sh <<'SH'
+          set -Eeuo pipefail
+          run5() {
+            local log="$1"; shift
+            : > "$log"
+            ( "$@" ) > >(tee -a "$log") 2> >(tee -a "$log" >&2) &
+            cmd_pid=$!
+            (
+              for i in $(seq 1 300); do
+                if ! kill -0 "$cmd_pid" 2>/dev/null; then exit 0; fi
+                sleep 1
+              done
+              echo "::error::Step exceeded 5 minutes, killing PID $cmd_pid"
+              kill -9 "$cmd_pid" 2>/dev/null || true
+              exit 124
+            ) &
+            wd_pid=$!
+            wait "$cmd_pid"; rc=$?
+            kill "$wd_pid" 2>/dev/null || true
+            if [ $rc -ne 0 ]; then
+              echo "----- FAILURE DIAGNOSTICS ($log) -----"
+              grep -m1 -Ei '(^|[^a-zA-Z])(error|fail|exception|traceback|panic|fatal)([^a-zA-Z]|$)' "$log" || true
+              echo "----- LAST 30 LINES -----"
+              tail -n 30 "$log" || true
+            fi
+            return $rc
+          }
+          SH
+      - name: Install deps (frozen)
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 quality-install.log pnpm install --frozen-lockfile"
+      - name: Lint (workspace)
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 quality-lint.log pnpm -w exec eslint ."
+      - name: Typecheck (workspace)
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 quality-types.log pnpm -w exec tsc -p tsconfig.json --noEmit"
+      - name: Test: buffer
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 test-buffer.log pnpm -F @lumen-guardian/buffer exec vitest run --reporter=dot"
+      - name: Test: extension
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 test-ext.log pnpm -F @lumen-guardian/extension exec vitest run --reporter=dot"
+      - name: Test: dashboard
+        shell: bash
+        run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 test-dash.log pnpm -F @lumen-guardian/dashboard exec vitest run --reporter=dot"
+      - name: Step summary (quality)
+        if: always()
+        run: |
+          echo "### UI & Library Quality Summary" >> $GITHUB_STEP_SUMMARY
+          for f in quality-*.log test-*.log; do
+            [ -f "$f" ] || continue
+            echo -e "\n<details><summary>${f}</summary>\n\n\`\`\`\n$(tail -n 30 "$f")\n\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY

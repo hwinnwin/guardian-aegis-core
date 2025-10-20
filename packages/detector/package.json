@@ -1,0 +1,22 @@
+{
+  "name": "@lumen-guardian/detector",
+  "version": "0.1.0",
+  "description": "Future Lumen Guardian threat detection engine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "threat-detection",
+    "ai",
+    "child-protection",
+    "guardian"
+  ],
+  "author": "Lumen Guardian Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

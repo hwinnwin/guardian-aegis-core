@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "Lumen Guardian",
+  "version": "0.1.0",
+  "description": "Privacy-first AI that protects young people online — without spying.",
+  "icons": {
+    "16": "assets/icons/manifest-icon-16.png",
+    "48": "assets/icons/manifest-icon-48.png",
+    "128": "assets/icons/manifest-icon-128.png",
+    "512": "assets/icons/manifest-icon-512.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.discord.com/*",
+    "https://*.messenger.com/*",
+    "https://*.instagram.com/*",
+    "https://*.snapchat.com/*",
+    "https://*.facebook.com/*",
+    "https://web.whatsapp.com/*",
+    "https://*.telegram.org/*"
+  ],
+  "action": {
+    "default_title": "Lumen Guardian",
+    "default_icon": {
+      "16": "assets/icons/manifest-icon-16.png",
+      "48": "assets/icons/manifest-icon-48.png",
+      "128": "assets/icons/manifest-icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.discord.com/*",
+        "https://*.messenger.com/*",
+        "https://*.instagram.com/*",
+        "https://*.snapchat.com/*",
+        "https://*.facebook.com/*",
+        "https://web.whatsapp.com/*",
+        "https://*.telegram.org/*"
+      ],
+      "js": [
+        "dist/content.js"
+      ],
+      "css": [
+        "dist/content.css"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dist/*"
+      ],
+      "matches": [
+        "https://*.discord.com/*",
+        "https://*.messenger.com/*",
+        "https://*.instagram.com/*",
+        "https://*.snapchat.com/*",
+        "https://*.facebook.com/*",
+        "https://web.whatsapp.com/*",
+        "https://*.telegram.org/*"
+      ]
+    }
+  ],
+  "short_name": "Lumen Guardian"
+}

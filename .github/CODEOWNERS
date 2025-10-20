@@ -1,0 +1,6 @@
+# Require core team review for critical areas
+/packages/buffer/**            @lumen-core-team
+/packages/extension/**         @lumen-core-team
+/packages/dashboard/**         @lumen-core-team
+/.github/workflows/**          @lumen-core-team
+/scripts/**                    @lumen-core-team

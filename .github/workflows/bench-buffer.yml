@@ -218,6 +218,20 @@ jobs:
           }
           SH
 
+      - name: Validate artifact SHA (Linux, 5m cap)
+        shell: bash
+        run: |
+          . .github/scripts/ci_helpers.sh
+          if [ ! -f ./bench-artifacts/bench-buffer.json ] || [ ! -f ./bench-artifacts/bench-buffer.sha256 ]; then
+            echo "Missing bench artifacts for SHA validation"; exit 1
+          fi
+          cd bench-artifacts
+          calc="$( (command -v shasum >/dev/null && shasum -a 256 bench-buffer.json || sha256sum bench-buffer.json) | awk '{print $1}' )"
+          want="$(cat bench-buffer.sha256 | tr -d '\n\r')"
+          echo "Computed: $calc"
+          echo "Expected: $want"
+          test "$calc" = "$want" || { echo "::error::Artifact SHA mismatch"; exit 1; }
+          cd ..
       - name: Validate metrics (Linux, 5m cap)
         shell: bash
         run: |

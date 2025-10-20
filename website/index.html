@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lumen Guardian – Local-first child protection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="../assets/icons/manifest-icon-48.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      header {
+        background: linear-gradient(120deg, #0f172a 0%, #1e1b4b 40%, #0f766e 100%);
+        padding: 64px 5vw;
+        text-align: left;
+      }
+      header h1 {
+        font-size: clamp(2.5rem, 6vw, 4rem);
+        margin: 0 0 12px 0;
+        color: #f8fafc;
+      }
+      header p {
+        max-width: 640px;
+        font-size: clamp(1rem, 2.5vw, 1.35rem);
+        margin: 0;
+      }
+      main {
+        flex: 1;
+        padding: 48px 5vw 80px;
+        display: grid;
+        gap: 32px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 16px;
+        padding: 28px;
+        backdrop-filter: blur(12px);
+      }
+      h2 {
+        margin-top: 0;
+        font-size: 1.75rem;
+        color: #f1f5f9;
+      }
+      ul {
+        padding-left: 1.2rem;
+        margin: 0;
+      }
+      footer {
+        padding: 24px 5vw;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
+        text-align: center;
+      }
+      a.button {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        background: #22c55e;
+        color: #0f172a;
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform 0.2s ease;
+      }
+      a.button:hover {
+        transform: translateY(-2px);
+      }
+      .hero-image {
+        width: 100%;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        margin-top: 32px;
+      }
+      @media (max-width: 720px) {
+        main {
+          padding: 32px 5vw 60px;
+          gap: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Lumen Guardian</h1>
+      <p>
+        A local-first guardian angel for kids online. Real-time grooming detection, sealed evidence, and
+        parent-controlled recovery—no cloud uploads required.
+      </p>
+      <a class="button" href="../docs/ALPHA.md">Join the alpha</a>
+      <img class="hero-image" src="../assets/hero/guardian-hero.png" alt="Lumen Guardian hero artwork" />
+    </header>
+    <main>
+      <section class="card">
+        <h2>Why Lumen Guardian?</h2>
+        <ul>
+          <li>Fast-path rules and ML run entirely in the browser.</li>
+          <li>Evidence is sealed with AES-GCM and protected by a parent PIN.</li>
+          <li>Calibrate with shadow mode, corpus runner, and adjustable thresholds.</li>
+          <li>Shadow telemetry never leaves the device and can be disabled instantly.</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Get ready for the store</h2>
+        <ul>
+          <li>Store-ready icons: <code>assets/icons</code></li>
+          <li>Chrome Web Store screenshots: <code>assets/screens</code></li>
+          <li>Privacy &amp; security docs shipped inside the build</li>
+          <li>Release checklist for manual QA and packaging</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Need help?</h2>
+        <p>
+          Questions, integrations, or partnership ideas? Email
+          <a href="mailto:hello@lumenguardian.app">hello@lumenguardian.app</a>.
+        </p>
+      </section>
+    </main>
+    <footer>© 2025 Lumen Guardian. Built open-source for family safety.</footer>
+  </body>
+</html>

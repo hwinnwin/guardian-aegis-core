@@ -1,0 +1,65 @@
+version: 0.3
+labels:
+  move_off_platform_invite:
+    severity: HIGH
+    patterns:
+      - src: "(?i)(?:let'?s|lets)\\s+(?:switch|move)\\s+(?:to|onto)\\s+(telegram|whatsapp|snapchat|signal)"
+        name: "invite: switch apps"
+        notes: "High-risk invite to change platforms; false positives: legitimate migration instructions."
+      - src: "(?i)\\b(tg|telegram)\\b\\s*[:@]?[a-z0-9_]{3,}"
+        name: "telegram handle"
+        notes: "Sharing handles often precedes off-platform move; false positives: profile headers."
+      - src: "(?i)\\b(snap\\s*me|sc:)\\b\\s*[a-z0-9_]{3,}"
+        name: "snap handle"
+        notes: "Snapchat username solicitations; false positives: social profile bios."
+    negatives:
+      - "(?i)news|update|policy|release notes"
+  pii_request:
+    severity: HIGH
+    patterns:
+      - src: "(?i)(what'?s|whats|your)\\s+(phone|number|#)\\b"
+        name: "ask: phone number"
+        notes: "Direct request for phone contact; false positives: device troubleshooting."
+      - src: "(?i)text\\s+me\\s+on\\s+\\+?\\d[\\d\\s-]{6,}"
+        name: "share: phone with intl prefix"
+        notes: "Full phone number with country code; false positives: shipping confirmations."
+      - src: "(?i)send\\s+me\\s+\\b(?:a\\s+)?(?:pic|photo)\\b"
+        name: "ask: photo"
+        notes: "Solicitation for photos; false positives: benign photography groups."
+    negatives:
+      - "(?i)photography|photo class|phone review"
+  secrecy_isolation:
+    severity: HIGH
+    patterns:
+      - src: "(?i)(don'?t|do\\s+not)\\s+tell\\s+(?:your|ur)\\s+(?:parents|mom|dad)"
+        name: "secrecy: don't tell parents"
+        notes: "Isolation attempts; false positives: TV/meme quotes."
+      - src: "(?i)keep\\s+this\\s+between\\s+us"
+        name: "secrecy: between us"
+        notes: "Demand for secrecy; false positives: harmless surprises."
+    negatives:
+      - "(?i)tv show|movie plot|role play"
+  meet_up_coordination:
+    severity: CRITICAL
+    patterns:
+      - src: "(?i)\\b(meet|hang)\\s+(?:at|by|outside)\\s+[A-Z][\\w'&-]+\\s+(?:at|@)\\s*(\\d{1,2}(:\\d{2})?\\s*(am|pm)?)"
+        name: "meet: location/time"
+        notes: "Scheduling real-world meet ups; false positives: family logistics."
+      - src: "(?i)\\b(I\\s+can\\s+pick\\s+you\\s+up|I'?ll\\s+drive\\s+you)\\b"
+        name: "meet: pickup offer"
+        notes: "Offers transportation; false positives: genuine parent carpools."
+  coercion_extortion:
+    severity: CRITICAL
+    patterns:
+      - src: "(?i)(if\\s+you\\s+don'?t.*i'?ll\\s+post|pay\\s+or\\s+else|send\\s+me\\s+money)"
+        name: "coercion/extortion"
+        notes: "Threatening extortion language; false positives: scam awareness discussions."
+  age_gap_romance_pattern:
+    severity: HIGH
+    patterns:
+      - src: "(?i)age\\s+is\\s+just\\s+a\\s+number"
+        name: "age gap: age is just a number"
+        notes: "Classic grooming justification; false positives: motivational posts."
+      - src: "(?i)you'?re\\s+mature\\s+for\\s+your\\s+age"
+        name: "age gap: mature for age"
+        notes: "Compliment leveraging age; false positives: supportive mentors."

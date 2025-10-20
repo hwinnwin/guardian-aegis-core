@@ -1,0 +1,42 @@
+{
+  "name": "@lumen-guardian/dashboard",
+  "version": "0.1.0",
+  "description": "Lumen Guardian QA + parent dashboard",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "echo 'Dashboard build - Phase 4'",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "dashboard",
+    "parent-controls",
+    "child-protection",
+    "guardian"
+  ],
+  "author": "Lumen Guardian Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.2",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.8"
+  }
+}
