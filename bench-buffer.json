@@ -1,0 +1,30 @@
+
+> vite_react_shadcn_ts@0.0.0 bench:buffer:json:force /Users/mrtungsten/Documents/Projects/4 Empires/App building/Guardian/guardian-aegis-core-main
+> JSON_OUTPUT=1 BENCH_FORCE_EXIT=1 node --expose-gc --import tsx packages/buffer/bench/bench-buffer.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔬 Lumen Guardian — Buffer Benchmarks
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Node: v22.19.0
+Platform: darwin arm64
+Date: 2025-10-20T21:22:49.087Z
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Push latency: 234.9 ns/op (N=2,000,000, cap=8,192)
+
+✓ Snapshot latency:
+  - k= 128: 0.405 ms
+  - k= 512: 0.300 ms
+  - k=2048: 0.038 ms
+  - k=8192: 0.251 ms
+
+✓ Memory: 824 B/interaction (N=100,000)
+  Total heap delta: 78.55 MB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Benchmarks complete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+JSON Results:
+[{"name":"push_latency","value":234.8822705,"unit":"ns/op","formatted":"234.9 ns/op"},{"name":"snapshot_k128","value":0.405459,"unit":"ms","formatted":"0.405 ms"},{"name":"snapshot_k512","value":0.299958,"unit":"ms","formatted":"0.300 ms"},{"name":"snapshot_k2048","value":0.038125,"unit":"ms","formatted":"0.038 ms"},{"name":"snapshot_k8192","value":0.251125,"unit":"ms","formatted":"0.251 ms"},{"name":"memory_per_interaction","value":823.6104,"unit":"bytes","formatted":"824 B","metadata":{"totalBytes":82361040}}]
+{"type":"summary","metrics":{"throughputPerSec":4257452.03276209,"latency":{"p95Ms":0.251125},"memory":{"bytesPerInteraction":823.6104},"rssPeakMB":78.54560852050781}}

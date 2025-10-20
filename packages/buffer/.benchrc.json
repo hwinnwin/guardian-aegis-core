@@ -1,0 +1,7 @@
+{
+  "throughputMin": 10000,
+  "p95MaxMs": 5,
+  "memPerInteractionMaxB": 1024,
+  "rssPeakMaxMB": 256,
+  "notes": "Mem/op threshold set to 1024B due to ~500-700B payload + object overhead on Apple Silicon/Node 22."
+}
