@@ -18,14 +18,14 @@ jobs:
       CI: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version: '22.19.0'
           cache: 'pnpm'
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
         with:
           version: 9
       - name: Prepare helpers (5m guard)
@@ -76,7 +76,7 @@ jobs:
             echo "bench-buffer.json SHA256: $(cat bench-buffer.sha256)"
           fi
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: buffer-bench
           path: |
@@ -132,7 +132,7 @@ jobs:
       BENCH_ARTIFACT_NAME: "buffer-bench"
     steps:
       - name: Checkout (scripts)
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Prepare tools
         shell: bash
         run: |
@@ -216,7 +216,7 @@ jobs:
           cat trend/TREND.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Post/update sticky trend comment (Issue #1)
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const fs = require('fs');
