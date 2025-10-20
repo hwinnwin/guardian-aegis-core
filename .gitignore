@@ -1,8 +1,8 @@
+.DS_Store
 node_modules/
 dist/
 *.log
 *.zip
-.DS_Store
 coverage/
 pnpm-debug.log*
 tmp/
@@ -13,12 +13,14 @@ tmp/
 # Environment / secrets
 .env
 .env.local
-.npmrc
+.env.*.local
 .npm-cache/
 .npm-global/
 
-# Lockfiles generated locally but not committed
-pnpm-lock.yaml
+# Lockfiles: keep PNPM lockfile, forbid others
+package-lock.json
+yarn.lock
+bun.lockb
 
 # CI benchmark artifacts
 bench-buffer.json

@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Lumen Guardian Extension",
+  "version": "0.1.0",
+  "description": "Placeholder MV3 manifest for tests.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage"
+  ]
+}
