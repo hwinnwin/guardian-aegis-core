@@ -29,3 +29,9 @@ bench-buffer.sha256
 
 # Tooling logs
 codex/logs/
+build/
+.turbo/
+.vite/
+.parcel-cache/
+.pnpm-store/
+.tmp/
