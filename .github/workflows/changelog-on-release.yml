@@ -1,0 +1,59 @@
+name: 📝 Changelog • On Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: changelog-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (full)
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+          cache: "pnpm"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
+        with:
+          version: 9
+
+      - name: Install (dev deps)
+        run: pnpm install --frozen-lockfile
+
+      - name: Update CHANGELOG.md
+        env:
+          GITHUB_REF: ${{ github.event.release.tag_name && format('refs/tags/{0}', github.event.release.tag_name) || github.ref }}
+        run: pnpm run changelog:write
+
+      - name: Commit & PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BR="docs/changelog-${{ github.event.release.tag_name || github.run_id }}"
+          git checkout -b "$BR" || git switch "$BR"
+          git add CHANGELOG.md
+          git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
+            commit -m "docs(changelog): add section for ${{ github.event.release.tag_name || 'latest' }}" || echo "No changes."
+          git push -u origin "$BR" || true
+          EXISTING_PR="$(gh pr list --head "$BR" --json number -q '.[0].number' || true)"
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create -t "docs(changelog): add section for ${{ github.event.release.tag_name || 'latest' }}" -b "Automated changelog update." || true
+          fi
+
