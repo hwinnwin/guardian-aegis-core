@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "doctor:react": "pnpm -r list react react-dom && node -e \"console.log(require.resolve('react/jsx-dev-runtime',{paths:['packages/dashboard']}))\"",
     "test:all": "pnpm -r test",
-    "build:ext": "pnpm -F @lumen-guardian/extension build",
+    "build:ext": "pnpm -F @lumen-guardian/extension build && pnpm -F @lumen-guardian/extension zip",
     "zip:ext": "pnpm -F @lumen-guardian/extension zip",
     "alpha:verify": "pnpm doctor:react && pnpm test:all && pnpm build:ext && pnpm zip:ext",
     "bench:buffer": "node --expose-gc --import tsx packages/buffer/bench/bench-buffer.ts",
@@ -21,7 +21,10 @@
     "bench:buffer:json": "JSON_OUTPUT=1 node --expose-gc --import tsx packages/buffer/bench/bench-buffer.ts",
     "bench:buffer:json:force": "JSON_OUTPUT=1 BENCH_FORCE_EXIT=1 node --expose-gc --import tsx packages/buffer/bench/bench-buffer.ts",
     "bench:buffer:watch": "node --require ./scripts/hang-watchdog.js --expose-gc --import tsx packages/buffer/bench/bench-buffer.ts",
-    "bench:buffer:smoke": "node scripts/smoke-bench-exit.mjs"
+    "bench:buffer:smoke": "node scripts/smoke-bench-exit.mjs",
+    "flags:stamp": "node scripts/flags-stamp.mjs",
+    "version:stamp": "node scripts/version-stamp.mjs",
+    "build:dashboard": "pnpm -F @lumen-guardian/dashboard build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
