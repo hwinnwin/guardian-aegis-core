@@ -15,6 +15,10 @@ concurrency:
   group: auto-merge-changelog-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+env:
+  MACHINE_USER: ai-qc-bot
+  REQUIRE_MACHINE_USER: true
+
 jobs:
   guard-and-merge:
     runs-on: ubuntu-latest
