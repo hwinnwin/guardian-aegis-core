@@ -24,10 +24,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quality-gates:
+    name: Quality Gates (lint • type • test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version: "22.19.0"
+          cache: pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+        with:
+          version: 9
+      - name: Install (frozen)
+        run: pnpm install --frozen-lockfile
+      - name: Helpers (5m guard)
+        shell: bash
+        run: |
+          cat > .ci_guard.sh <<'SH'
+          set -Eeuo pipefail
+          run5(){ local log="$1"; shift; :> "$log"; ( "$@" ) > >(tee -a "$log") 2> >(tee -a "$log" >&2) & p=$!
+            for i in $(seq 1 300); do kill -0 $p 2>/dev/null || exit 0; sleep 1; done
+            echo "::error::Step exceeded 5 minutes"; kill -9 $p 2>/dev/null || true; exit 124; }
+          SH
+          chmod +x ./.ci_guard.sh
+      - name: Lint
+        shell: bash
+        run: ./.ci_guard.sh lint.log pnpm -w run lint
+      - name: Typecheck
+        shell: bash
+        run: ./.ci_guard.sh type.log pnpm -w run typecheck
+      - name: Tests
+        shell: bash
+        run: ./.ci_guard.sh test.log pnpm -w run test
+
   build-bench:
     name: Build & Benchmark
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    needs: quality-gates
     outputs:
       sha_dash: ${{ steps.sha_dash.outputs.hash }}
       sha_ext: ${{ steps.sha_ext.outputs.hash }}
