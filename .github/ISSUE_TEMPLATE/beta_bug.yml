@@ -1,0 +1,20 @@
+name: "🐞 Beta Bug"
+description: Report a bug found in the beta
+labels: ["beta","bug"]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: "What happened?", placeholder: "Steps, expected vs actual…" }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: "Version (from footer/About)", placeholder: "v1.0.0-beta.1 (abc1234)" }
+  - type: input
+    id: env
+    attributes: { label: "Environment", placeholder: "macOS 14 / Chrome 129 / M3 Max" }
+  - type: textarea
+    id: repro
+    attributes: { label: "Repro steps", placeholder: "1)… 2)…" }
+  - type: textarea
+    id: logs
+    attributes: { label: "Logs / screenshots / error code", placeholder: "Attach if possible" }
