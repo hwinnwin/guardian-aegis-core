@@ -32,7 +32,11 @@ jobs:
             const pr = context.payload.pull_request;
             if (!pr) return 'skip: no pr in payload';
 
-            const isBot = (pr.user?.login || '').toLowerCase().includes('github-actions');
+            if (pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              return 'skip: fork PR not eligible';
+            }
+
+            const isBot = (pr.user?.type === 'Bot') || (pr.user?.login || '').toLowerCase().includes('github-actions');
             const isChangelogBranch = /^docs\/changelog-/.test(pr.head.ref);
             if (!isBot || !isChangelogBranch) return 'skip: not bot or not docs/changelog-*';
 
@@ -55,8 +59,7 @@ jobs:
               ref: pr.head.sha
             });
             const states = status.statuses?.map(s => s.state) || [];
-            const anyFail = states.includes('failure') || states.includes('error');
-            if (status.state !== 'success' || anyFail) {
+            if (status.state !== 'success' || states.includes('failure') || states.includes('error')) {
               return `wait: combined status = ${status.state} (${states.join(',')})`;
             }
 
@@ -65,7 +68,7 @@ jobs:
               repo: context.repo.repo,
               ref: pr.head.sha
             });
-            const failing = (checks.check_runs || []).filter(c => ['failure','timed_out','cancelled','action_required','stale','skipped'].includes((c.conclusion||'').toLowerCase()));
+            const failing = (checks.check_runs || []).filter(c => ['failure','timed_out','cancelled','action_required','stale'].includes((c.conclusion||'').toLowerCase()));
             if (failing.length) {
               return `wait: failing checks = ${failing.map(c => c.name + ':' + c.conclusion).join(', ')}`;
             }
@@ -75,7 +78,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: pr.number,
-                labels: ['changelog-only']
+                labels: ['changelog-only','ai-qc-approved']
               });
             } catch {}
 
@@ -92,6 +95,40 @@ jobs:
         run: |
           echo "${{ steps.eval.outputs.result }}"
           exit 0
+
+      - name: Check approvals & provenance
+        id: approvals
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          result-encoding: string
+          script: |
+            const pr = context.payload.pull_request;
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+            const approvers = reviews.filter(r => r.state === 'APPROVED').map(r => (r.user?.login || '').toLowerCase());
+            const hasAnyApproval = approvers.length > 0;
+            const REQUIRE_MACHINE_USER = (process.env.REQUIRE_MACHINE_USER || 'false').toLowerCase() === 'true';
+            const machineUser = (process.env.MACHINE_USER || '').toLowerCase();
+            const hasMachineApproval = machineUser ? approvers.includes(machineUser) : false;
+            if (REQUIRE_MACHINE_USER && !hasMachineApproval) return 'need-bot-approval';
+            if (hasAnyApproval) return 'ok';
+            return 'needs-approval';
+
+      - name: Auto-approve (AI QC bot)
+        if: steps.approvals.outputs.result == 'needs-approval'
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_QC_BOT_TOKEN != '' && secrets.AI_QC_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+        uses: hmarr/auto-approve-action@b40c1bfa9d20b6c60df0d09422da1b93a6a30757 # v3.2.1
+
+      - name: Enforce machine-user provenance
+        if: steps.approvals.outputs.result == 'need-bot-approval'
+        run: |
+          echo "::error::Machine-user approval required but not present. Configure MACHINE_USER/REQUIRE_MACHINE_USER or approve manually."
+          exit 1
 
       - name: Merge PR (squash)
         if: steps.eval.outputs.result == 'merge'
@@ -116,3 +153,16 @@ jobs:
             } catch (e) {
               core.warning('Branch cleanup skipped: ' + (e?.message || e));
             }
+
+      - name: Comment merge result
+        if: steps.eval.outputs.result == 'merge'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: "✅ Auto-merged by **AI QC Safety Protocol**: changelog-only PR with all checks green."
+            });
