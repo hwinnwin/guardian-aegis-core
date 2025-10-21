@@ -1,13 +1,10 @@
-import fs from 'node:fs';
-import { execSync } from 'node:child_process';
-
-const sha = execSync('git rev-parse --short HEAD').toString().trim();
-const now = new Date().toISOString();
-const version = process.env.APP_VERSION ?? '0.0.0-beta.local';
-
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+const version = process.env.APP_VERSION ?? "0.0.0-beta.local";
+const commit = execSync("git rev-parse --short HEAD").toString().trim();
+const build_time = new Date().toISOString();
 fs.writeFileSync(
-  'version.json',
-  JSON.stringify({ version, commit: sha, build_time: now }, null, 2) + '\n'
+  "version.json",
+  JSON.stringify({ version, commit, build_time }, null, 2)
 );
-
-console.log(`📦 Version stamped: ${version} (${sha}) at ${now}`);
+console.log(`📦 Version stamped: ${version} (${commit})`);
