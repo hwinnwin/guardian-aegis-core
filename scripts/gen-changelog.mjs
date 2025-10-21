@@ -3,6 +3,10 @@
  *  - the current tag (if GITHUB_REF is a tag) or
  *  - HEAD (otherwise).
  * Prints the section to stdout (no file mutation).
+ *
+ * STRICT MODE:
+ *   If CHANGELOG_STRICT === 'true' and there are no conventional commits,
+ *   exits with non-zero to allow gating releases.
  */
 import { execSync } from 'node:child_process';
 
@@ -29,7 +33,7 @@ const isTagRef = ref.startsWith('refs/tags/');
 const currentTag = isTagRef ? ref.replace('refs/tags/', '') : '';
 const toRef = currentTag || 'HEAD';
 
-// Find previous tag
+// Find previous tag (newest first list)
 let fromRef = '';
 try {
   const all = sh("git tag --list --sort=-creatordate 'v*'").split('\n').filter(Boolean);
@@ -37,7 +41,7 @@ try {
     const idx = all.indexOf(currentTag);
     if (idx >= 0 && idx < all.length - 1) fromRef = all[idx + 1];
   } else {
-    fromRef = all[1] || '';
+    fromRef = all[1] || ''; // latest is [0], previous is [1]
   }
 } catch {}
 
@@ -48,15 +52,8 @@ const context = {
   previousTag: fromRef || null,
 };
 
-const options = {
-  preset: 'conventionalcommits',
-  releaseCount: 0,
-};
-
-const gitRawCommitsOpts = {
-  from: fromRef || undefined,
-  to: toRef || undefined,
-};
+const options = { preset: 'conventionalcommits', releaseCount: 0 };
+const gitRawCommitsOpts = { from: fromRef || undefined, to: toRef || undefined };
 
 let out = '';
 const stream = conventionalChangelog(options, context, gitRawCommitsOpts);
@@ -66,9 +63,15 @@ await new Promise((resolve, reject) => {
   stream.on('end', resolve);
 });
 
-if (!out.trim()) {
+const trimmed = out.trim();
+
+if (!trimmed) {
+  if ((process.env.CHANGELOG_STRICT || '').toLowerCase() === 'true') {
+    console.error('❌ No conventional commits found since previous tag. (STRICT mode)');
+    process.exit(2);
+  }
   console.log(header + '\n_No conventional commits found._\n');
   process.exit(0);
 }
 
-console.log(header + out.trim() + '\n');
+console.log(header + trimmed + '\n');

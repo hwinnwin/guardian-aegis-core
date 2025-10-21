@@ -1,185 +1,108 @@
-name: "\U0001F680 Release  Auto (Build + Bench + Notes + Notify)"
+name: 🚀 Release • Auto
 
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Tag name (e.g., v1.0.0-beta.1)"
-        required: true
-      channel:
-        description: "beta | production"
-        required: true
-        default: "beta"
-  push:
-    tags:
-      - "v*.*.*"
-      - "v*.*.*-beta.*"
+      tag: { description: "Tag to create (e.g., v1.2.3 or v1.2.3-beta.4)", required: true }
+      channel: { description: "beta | production", required: true, default: "beta" }
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-auto-${{ inputs.tag }}
   cancel-in-progress: true
 
 jobs:
-  quality-gates:
-    name: Quality Gates (lint • type • test)
+  preflight-changelog:
+    name: Preflight Changelog (STRICT)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Checkout (full)
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+        with:
+          fetch-depth: 0
       - name: Setup Node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
-        with:
-          node-version: "22.19.0"
-          cache: pnpm
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-        with:
-          version: 9
-      - name: Install (frozen)
-        run: pnpm install --frozen-lockfile
-      - name: Helpers (5m guard)
-        shell: bash
-        run: |
-          cat > .ci_guard.sh <<'SH'
-          set -Eeuo pipefail
-          run5(){ local log="$1"; shift; :> "$log"; ( "$@" ) > >(tee -a "$log") 2> >(tee -a "$log" >&2) & p=$!
-            for i in $(seq 1 300); do kill -0 $p 2>/dev/null || exit 0; sleep 1; done
-            echo "::error::Step exceeded 5 minutes"; kill -9 $p 2>/dev/null || true; exit 124; }
-          SH
-          chmod +x ./.ci_guard.sh
-      - name: Lint
-        shell: bash
-        run: ./.ci_guard.sh lint.log pnpm -w run lint
-      - name: Typecheck
-        shell: bash
-        run: ./.ci_guard.sh type.log pnpm -w run typecheck
-      - name: Tests
-        shell: bash
-        run: ./.ci_guard.sh test.log pnpm -w run test
-
-  build-bench:
-    name: Build & Benchmark
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    needs: quality-gates
-    outputs:
-      sha_dash: ${{ steps.sha_dash.outputs.hash }}
-      sha_ext: ${{ steps.sha_ext.outputs.hash }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
         with:
           node-version: "22.19.0"
           cache: "pnpm"
-      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
         with:
           version: 9
-
-      - name: Install Dependencies
+      - name: Install (dev deps)
         run: pnpm install --frozen-lockfile
-
-      - name: Stamp Version & Flags
-        run: |
-          pnpm node scripts/version-stamp.mjs
-          pnpm node scripts/flags-stamp.mjs
-
-      - name: Build Dashboard
-        run: pnpm -F @lumen-guardian/dashboard build
-
-      - name: Archive Dashboard
-        run: tar -czf dashboard-dist.tgz -C packages/dashboard/dist .
-
-      - id: sha_dash
-        name: Compute Dashboard SHA256
-        run: echo "hash=$(sha256sum dashboard-dist.tgz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-
-      - name: Build Extension
-        run: pnpm -F @lumen-guardian/extension build && pnpm -F @lumen-guardian/extension zip
-
-      - id: sha_ext
-        name: Compute Extension SHA256
-        run: echo "hash=$(sha256sum packages/extension/*.zip | head -n1 | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-
-      - name: Run Bench (NDJSON)
+      - name: Generate changelog section (STRICT)
         env:
-          JSON_OUTPUT: "1"
-          BENCH_FORCE_EXIT: "1"
-        run: pnpm bench:buffer:json:force | tee bench-buffer.json
-
-      - name: Extract Bench Summary
-        run: pnpm node scripts/extract-bench-summary.mjs bench-buffer.json
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+          CHANGELOG_STRICT: "true"
+          GITHUB_REF: refs/tags/${{ inputs.tag }}
+        run: pnpm run changelog:section > CHANGELOG_SECTION.md
+      - name: Upload changelog section
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.4.3
         with:
-          name: release-artifacts
-          path: |
-            dashboard-dist.tgz
-            packages/extension/*.zip
-            version.json
-            feature-flags.json
-            bench-buffer.json
-            bench-summary.env
+          name: changelog-section
+          path: CHANGELOG_SECTION.md
 
-  release:
-    name: Create Release & Upload
+  tag-and-dispatch:
+    name: Tag & Dispatch CD
     runs-on: ubuntu-latest
-    needs: build-bench
-    timeout-minutes: 20
-    env:
-      SHA_DASHBOARD: ${{ needs.build-bench.outputs.sha_dash }}
-      SHA_EXTENSION: ${{ needs.build-bench.outputs.sha_ext }}
+    needs: preflight-changelog
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: release-artifacts
-          path: ./artifacts
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+        with: { fetch-depth: 0 }
 
-      - name: Generate Release Notes
+      - name: Create tag if missing
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
-          cp ./artifacts/version.json .
-          pnpm node scripts/gen-release-notes.mjs
+          if git rev-parse "${TAG}^{tag}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists (ok)."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "${TAG}" -m "Release ${TAG}"
+            git push origin "${TAG}"
+          fi
 
-      - name: Create or Update Release
+      - name: Dispatch CD • Dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          gh workflow run "cd-dashboard.yml" -f channel="${CHANNEL}"
+
+      - name: Dispatch CD • Extension
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          gh workflow run "cd-extension.yml" -f channel="${CHANNEL}"
+
+  append-changelog-to-release:
+    name: Attach Changelog Section
+    runs-on: ubuntu-latest
+    needs: tag-and-dispatch
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download changelog section
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.1.8
+        with:
+          name: changelog-section
+          path: .
+      - name: Append to Release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG=${{ github.event.inputs.tag || github.ref_name }}
-          gh release create "$TAG" --title "$TAG" --notes-file RELEASE_NOTES.md || \
-          gh release edit "$TAG" --notes-file RELEASE_NOTES.md
-
-      - name: Upload Assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG=${{ github.event.inputs.tag || github.ref_name }}
-          gh release upload "$TAG" ./artifacts/dashboard-dist.tgz ./artifacts/*.zip --clobber
-
-  notify:
-    name: Notify Channels
-    runs-on: ubuntu-latest
-    needs: release
-    timeout-minutes: 5
-    steps:
-      - name: Send Slack Notification
-        if: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          MSG="✅ Guardian ${GITHUB_REF_NAME} released — see GitHub Releases."
-          curl -s -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"$MSG\"}" \
-            "${{ secrets.SLACK_WEBHOOK_URL }}" || true
-
-      - name: Send Discord Notification
-        if: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          MSG="✅ Guardian ${GITHUB_REF_NAME} released — see GitHub Releases."
-          curl -s -H "Content-Type: application/json" -X POST \
-            -d "{\"content\":\"$MSG\"}" \
-            "${{ secrets.DISCORD_WEBHOOK_URL }}" || true
+          TAG="${{ inputs.tag }}"
+          echo -e "\n---\n\n## Changelog\n" >> RELEASE_NOTES_APPEND.md
+          cat CHANGELOG_SECTION.md >> RELEASE_NOTES_APPEND.md
+          CURR="$(gh release view "$TAG" --json body -q .body || echo '')"
+          printf "%s\n\n%s\n" "$CURR" "$(cat RELEASE_NOTES_APPEND.md)" > NEW_NOTES.md
+          gh release edit "$TAG" --notes-file NEW_NOTES.md
