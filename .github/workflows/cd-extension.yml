@@ -1,4 +1,4 @@
-name: CD • Extension (MV3)
+name: CD • Extension
 
 on:
   workflow_dispatch:
@@ -7,114 +7,9 @@ on:
         description: "beta | production"
         required: true
         default: "beta"
-  push:
-    branches: [ "release/beta-**" ]
-
-env:
-  APP_VERSION: ${{ github.ref_name }}
-  DEPLOY_CHANNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.channel || 'beta' }}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ env.DEPLOY_CHANNEL }}
-  cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build + Zip
+  noop:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    outputs:
-      sha256: ${{ steps.hash.outputs.sha256 }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - name: Setup Node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
-        with:
-          node-version: '22.19.0'
-          cache: pnpm
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-        with:
-          version: 9
-      - name: Install
-        run: pnpm install --frozen-lockfile
-      - name: Stamp version
-        run: pnpm run version:stamp
-      - name: Build & Zip
-        run: |
-          pnpm run build:ext
-          if [ -f packages/extension/extension-${APP_VERSION}.zip ]; then
-            echo "deterministic zip exists"
-          else
-            mv packages/extension/*.zip packages/extension/extension-${APP_VERSION}.zip
-          fi
-      - name: Hash artifact
-        id: hash
-        run: |
-          ZIP=packages/extension/extension-${APP_VERSION}.zip
-          echo "sha256=$( (command -v shasum >/dev/null && shasum -a 256 \"$ZIP\" || sha256sum \"$ZIP\") | awk '{print $1}' )" >> "$GITHUB_OUTPUT"
-      - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: extension-zip
-          path: |
-            packages/extension/extension-${APP_VERSION}.zip
-            version.json
-
-  publish:
-    name: Upload + Publish (CWS)
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: ${{ env.DEPLOY_CHANNEL }}
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout (scripts only)
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - name: Download artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: extension-zip
-          path: ./art
-      - name: Verify SHA
-        run: |
-          f=art/extension-${APP_VERSION}.zip
-          calc=$( (command -v shasum >/dev/null && shasum -a 256 "$f" || sha256sum "$f") | awk '{print $1}' )
-          want="${{ needs.build.outputs.sha256 }}"
-          echo "calc=$calc"; echo "want=$want"
-          [ "$calc" = "$want" ] || (echo "::error::SHA mismatch"; exit 1)
-      - name: Preflight secrets
-        shell: bash
-        run: |
-          : "${{ secrets.CWS_CLIENT_ID:?Missing CWS_CLIENT_ID }}"
-          : "${{ secrets.CWS_CLIENT_SECRET:?Missing CWS_CLIENT_SECRET }}"
-          : "${{ secrets.CWS_REFRESH_TOKEN:?Missing CWS_REFRESH_TOKEN }}"
-          if [ "${DEPLOY_CHANNEL}" = "production" ]; then
-            : "${{ secrets.CWS_EXTENSION_ID_PROD:?Missing CWS_EXTENSION_ID_PROD }}"
-          else
-            : "${{ secrets.CWS_EXTENSION_ID_BETA:?Missing CWS_EXTENSION_ID_BETA }}"
-          fi
-      - name: Publish to Chrome Web Store (beta/prod)
-        env:
-          EXT_ID: ${{ (env.DEPLOY_CHANNEL == 'production') && secrets.CWS_EXTENSION_ID_PROD || secrets.CWS_EXTENSION_ID_BETA }}
-          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
-          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
-          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
-        run: |
-          npm i -g chrome-webstore-upload-cli@3
-          ZIP=art/extension-${APP_VERSION}.zip
-          chrome-webstore-upload upload \
-            --extension-id "$EXT_ID" \
-            --client-id "$CWS_CLIENT_ID" \
-            --client-secret "$CWS_CLIENT_SECRET" \
-            --refresh-token "$CWS_REFRESH_TOKEN" \
-            --file "$ZIP"
-          chrome-webstore-upload publish \
-            --extension-id "$EXT_ID" \
-            --client-id "$CWS_CLIENT_ID" \
-            --client-secret "$CWS_CLIENT_SECRET" \
-            --refresh-token "$CWS_REFRESH_TOKEN"
+      - run: echo "CD extension workflow disabled in this branch"
