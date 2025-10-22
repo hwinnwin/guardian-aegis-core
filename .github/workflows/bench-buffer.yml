@@ -1,3 +1,8 @@
+# NOTE:
+# - We intentionally DO NOT use `cache: pnpm` on actions/setup-node.
+# - pnpm caching is handled by pnpm/action-setup (below) after Node is installed.
+# - This avoids brittle probes for pnpm on fresh runners and keeps installs deterministic.
+
 name: Buffer Bench & Validate
 
 on:
@@ -34,15 +39,16 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Setup Node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
         with:
           node-version: '22.19.0'
-          # Avoid setup-node pnpm cache here; the action probes for pnpm and fails on fresh runners.
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+      - name: Setup pnpm (cache)
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
         with:
           version: 9
+          run_install: false
+          cache: true
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -165,15 +171,16 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Setup Node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
         with:
           node-version: '22.19.0'
-          # Avoid setup-node pnpm cache here; pnpm/action-setup installs the binary explicitly.
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+      - name: Setup pnpm (cache)
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
         with:
           version: 9
+          run_install: false
+          cache: true
 
       - name: Install deps (for validator)
         run: pnpm install --frozen-lockfile
