@@ -1,3 +1,8 @@
+# NOTE:
+# - We intentionally DO NOT use `cache: pnpm` on actions/setup-node.
+# - pnpm caching is handled by pnpm/action-setup (below) after Node is installed.
+# - This avoids brittle probes for pnpm on fresh runners and keeps installs deterministic.
+
 name: "🚦 Release Prep Gate"
 
 on:
@@ -37,11 +42,12 @@ jobs:
         with:
           node-version: "22.19.0"
 
-      - name: Enable pnpm (corepack)
-        run: |
-          corepack enable || true
-          corepack prepare pnpm@9 --activate || true
-          command -v pnpm >/dev/null || npm i -g pnpm@9
+      - name: Setup pnpm (cache)
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
+        with:
+          version: 9
+          run_install: false
+          cache: true
 
       # ── Resolve PR context & default branch before dispatching audit ─────────────
       - name: Resolve PR & default branch
