@@ -45,12 +45,19 @@ jobs:
         with:
           node-version: "22.19.0"
 
-      - name: Setup pnpm (cache)
+      - name: Setup pnpm
         uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
         with:
           version: 9
           run_install: false
-          cache: true
+
+      - name: Restore pnpm store cache
+        uses: actions/cache@13aac22a282a93b5f802e124fdef6833b5066a2d # v4.0.2
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
 
       # ── Resolve PR context & default branch before dispatching audit ─────────────
       - name: Resolve PR & default branch
