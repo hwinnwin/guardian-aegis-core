@@ -202,6 +202,9 @@ jobs:
       - name: (Detector) Test + Coverage
         run: pnpm -F @lumen-guardian/detector test -- --coverage --run
 
+      - name: (Detector) Build
+        run: pnpm -F @lumen-guardian/detector build
+
       - name: (Detector) Bench (deterministic)
         run: node packages/detector/bench/run.mjs --threads=1 --seed=0xA11CE
 
