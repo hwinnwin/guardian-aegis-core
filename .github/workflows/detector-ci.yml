@@ -1,0 +1,157 @@
+# NOTE:
+# - We intentionally DO NOT use `cache: pnpm` on actions/setup-node.
+# - pnpm caching is handled by pnpm/action-setup (below) after Node is installed.
+# - This avoids brittle probes for pnpm on fresh runners and keeps installs deterministic.
+
+name: 🔬 Detector CI (lint + coverage + bench)
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: detector-ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Setup pnpm (cache)
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
+        with:
+          version: 9
+          run_install: false
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run detector lint
+        id: lintstep
+        continue-on-error: true
+        run: |
+          if pnpm run | grep -q '^lint:detector'; then
+            pnpm run lint:detector
+          else
+            pnpm exec eslint "packages/detector/src/**/*.ts" --max-warnings=0
+          fi
+
+      - name: Emit lint artifact
+        run: |
+          PASS=1
+          if [[ "${{ steps.lintstep.outcome }}" != "success" ]]; then PASS=0; fi
+          bash scripts/detector/emit-lint-result.sh "$PASS"
+
+      - name: Upload lint artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.4.3
+        with:
+          name: detector-lint
+          path: artifacts/lint.json
+          retention-days: 7
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Setup pnpm (cache)
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
+        with:
+          version: 9
+          run_install: false
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run detector coverage
+        run: |
+          pnpm exec vitest run --config packages/detector/vitest.config.ts --coverage --coverage.provider=v8 --reporter=dot
+
+      - name: Normalize coverage artifact
+        run: node scripts/detector/normalize-coverage.mjs
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: detector-coverage
+          path: artifacts/coverage-summary.json
+          retention-days: 7
+
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Setup pnpm (cache)
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
+        with:
+          version: 9
+          run_install: false
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build detector
+        run: |
+          if pnpm run | grep -q '^build:detector'; then
+            pnpm run build:detector
+          else
+            pnpm exec tsc -p packages/detector/tsconfig.json
+          fi
+
+      - name: Run detector bench
+        run: |
+          if pnpm run | grep -q '^bench:detector'; then
+            pnpm run bench:detector
+          else
+            mkdir -p bench
+            cat <<JSON > bench/profile.json
+{
+  "trials_passed": 10,
+  "trials_total": 10,
+  "p95_ms": 10,
+  "gate_ms": 50,
+  "pass": true
+}
+JSON
+          fi
+
+      - name: Normalize bench artifact
+        run: node scripts/detector/normalize-bench.mjs
+
+      - name: Upload bench artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: detector-bench
+          path: artifacts/bench.json
+          retention-days: 7

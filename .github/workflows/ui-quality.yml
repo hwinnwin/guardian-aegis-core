@@ -71,13 +71,13 @@ jobs:
       - name: Typecheck (workspace)
         shell: bash
         run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 quality-types.log pnpm -w exec tsc -p tsconfig.json --noEmit"
-      - name: Test: buffer
+      - name: "Test: buffer"
         shell: bash
         run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 test-buffer.log pnpm -F @lumen-guardian/buffer exec vitest run --reporter=dot"
-      - name: Test: extension
+      - name: "Test: extension"
         shell: bash
         run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 test-ext.log pnpm -F @lumen-guardian/extension exec vitest run --reporter=dot"
-      - name: Test: dashboard
+      - name: "Test: dashboard"
         shell: bash
         run: bash -Eeuo pipefail -c ". .github/scripts/ci_helpers.sh; run5 test-dash.log pnpm -F @lumen-guardian/dashboard exec vitest run --reporter=dot"
       - name: Step summary (quality)
