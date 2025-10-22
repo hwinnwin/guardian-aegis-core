@@ -1,0 +1,272 @@
+name: "🚦 Release Prep Gate"
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - ready_for_review
+    branches:
+      - "main"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: write
+
+concurrency:
+  group: release-prep-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Enable pnpm (corepack)
+        run: |
+          corepack enable || true
+          corepack prepare pnpm@9 --activate || true
+          command -v pnpm >/dev/null || npm i -g pnpm@9
+
+      # ── Resolve PR context & default branch before dispatching audit ─────────────
+      - name: Resolve PR & default branch
+        id: ctx
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            core.setOutput("default_branch", repo.default_branch || "main");
+            if (pr) {
+              core.setOutput("pr", String(pr.number));
+              core.setOutput("has_pr", "true");
+            } else {
+              core.info("No pull_request context detected (workflow_dispatch run).");
+              core.setOutput("pr", "");
+              core.setOutput("has_pr", "false");
+            }
+
+      # ── Dispatch & wait for the Aegis Final Audit before gating release ─────────
+      - name: Aegis Final Audit • Dispatch
+        id: dispatch
+        if: steps.ctx.outputs.has_pr == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          result-encoding: string
+          pr: ${{ steps.ctx.outputs.pr }}
+          ref: ${{ steps.ctx.outputs.default_branch }}
+          script: |
+            const pr = core.getInput("pr");
+            const ref = core.getInput("ref");
+            if (!pr || !ref) {
+              core.info("Missing PR or default branch; skipping audit dispatch.");
+              core.setOutput("dispatched", "false");
+              return JSON.stringify({ dispatched: false });
+            }
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: "aegis-final-audit-pr.yml",
+                ref,
+                inputs: { pr, mode: "" }
+              });
+              const dispatchedAt = new Date().toISOString();
+              core.setOutput("dispatched", "true");
+              core.setOutput("ref", ref);
+              core.setOutput("pr", pr);
+              core.setOutput("dispatched_at", dispatchedAt);
+              return JSON.stringify({
+                dispatched: true,
+                ref,
+                pr,
+                dispatched_at: dispatchedAt
+              });
+            } catch (error) {
+              const message = error?.message || String(error);
+              core.warning(`Aegis dispatch failed (continuing as advisory): ${message}`);
+              core.setOutput("dispatched", "false");
+              core.setOutput("error", message);
+              return JSON.stringify({ dispatched: false, error: message });
+            }
+
+      - name: Aegis Final Audit • Wait for completion (≤10 min)
+        id: wait_aegis
+        if: steps.dispatch.outputs.dispatched == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          ref: ${{ steps.dispatch.outputs.ref }}
+          dispatched_at: ${{ steps.dispatch.outputs.dispatched_at }}
+          workflow_id: "aegis-final-audit-pr.yml"
+          timeout_minutes: "10"
+          poll_seconds: "15"
+          script: |
+            const ref = core.getInput("ref");
+            const workflowId = core.getInput("workflow_id");
+            const dispatchedAtIso = core.getInput("dispatched_at");
+            const timeoutMinutes = Number(core.getInput("timeout_minutes") || "10");
+            const pollSeconds = Number(core.getInput("poll_seconds") || "15");
+
+            const dispatchedAt = dispatchedAtIso ? Date.parse(dispatchedAtIso) : Date.now();
+            const timeoutMs = timeoutMinutes * 60 * 1000;
+            const pollMs = pollSeconds * 1000;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const start = Date.now();
+            let runInfo = null;
+
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            while (Date.now() - start < timeoutMs) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowId,
+                branch: ref,
+                event: "workflow_dispatch",
+                per_page: 10
+              });
+
+              const runs = Array.isArray(data?.workflow_runs) ? data.workflow_runs : [];
+              runInfo = runs.find((run) => {
+                const created = Date.parse(run.created_at || "");
+                return !Number.isNaN(created) && created >= dispatchedAt - 5000;
+              }) || runs[0];
+
+              if (runInfo) {
+                core.info(`Aegis run ${runInfo.id}: ${runInfo.status} ${runInfo.conclusion || ""}`);
+                if (runInfo.status === "completed") {
+                  break;
+                }
+              } else {
+                core.info("No workflow runs found yet.");
+              }
+
+              await sleep(pollMs);
+            }
+
+            if (!runInfo) {
+              core.warning("Aegis wait timed out without locating a workflow run (continuing with advisory data).");
+              return;
+            }
+
+            if (runInfo.status !== "completed") {
+              core.warning(`Aegis wait timed out after ${timeoutMinutes} minutes (last status: ${runInfo.status}/${runInfo.conclusion || "none"}).`);
+            }
+
+            core.setOutput("run_id", String(runInfo.id));
+            core.setOutput("status", runInfo.status || "");
+            core.setOutput("conclusion", runInfo.conclusion || "");
+
+      # ── Detector CI (lint → tests+coverage → bench → normalize) ────────────────
+      - name: (Detector) Install deps (frozen)
+        run: pnpm install --frozen-lockfile
+
+      - name: (Detector) Lint
+        run: bash scripts/detector/emit-lint-result.sh
+
+      - name: (Detector) Test + Coverage
+        run: pnpm -F @lumen-guardian/detector test -- --coverage --run
+
+      - name: (Detector) Bench (deterministic)
+        run: node packages/detector/bench/run.mjs --threads=1 --seed=0xA11CE
+
+      - name: (Detector) Normalize coverage
+        run: node scripts/detector/normalize-coverage.mjs
+
+      - name: (Detector) Normalize bench
+        run: node scripts/detector/normalize-bench.mjs
+
+      # ── Aggregate & Gate ──────────────────────────────────────────────────────
+      - name: Aggregate Release Prep
+        id: prep
+        run: node scripts/release/release-prep.mjs
+
+      - name: Upload summary artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.4.3
+        with:
+          name: release-prep-summary
+          path: .release_prep/*
+
+      - name: Sticky PR Comment (summary)
+        if: always() && github.event.pull_request.number
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              return;
+            }
+            const fs = require("fs");
+            const marker = "<!-- RELEASE_PREP_GATE -->";
+            const body = fs.readFileSync(".release_prep/release-prep-summary.md", "utf8");
+            const content = `${marker}\n${body}\n${marker}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              per_page: 100
+            });
+            const prev = comments.find((c) => c.user?.type === "Bot" && c.body?.includes(marker));
+            if (prev) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: prev.id,
+                body: content
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: content
+              });
+            }
+
+      - name: Emit "Release Prep Gate" Check
+        if: always()
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const fs = require("fs");
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+            const summary = fs.readFileSync(".release_prep/release-prep-summary.md", "utf8");
+            const hardFails = /\*\*Hard Fails:\*\*[\s\S]*-\s+/.test(summary);
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Release Prep Gate",
+              head_sha: headSha,
+              status: "completed",
+              conclusion: hardFails ? "failure" : "success",
+              output: {
+                title: hardFails ? "NO-GO" : "GO",
+                summary: summary.slice(0, 65535)
+              }
+            });
+
+      - name: Fail if NO-GO
+        run: |
+          if grep -q '**Hard Fails:**' .release_prep/release-prep-summary.md && grep -qE '\*\*Hard Fails:\*\*\s*\n-\s*' .release_prep/release-prep-summary.md; then
+            echo "::error::Release Prep Gate detected hard failures."
+            exit 1
+          fi
