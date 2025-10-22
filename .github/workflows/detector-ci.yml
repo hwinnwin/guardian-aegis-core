@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   lint:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -71,6 +72,7 @@ jobs:
           retention-days: 7
 
   coverage:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -114,6 +116,7 @@ jobs:
           retention-days: 7
 
   bench:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
