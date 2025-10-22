@@ -16,8 +16,13 @@
     },
     "./worker": "./worker/detector.worker.ts"
   },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts --run --reporter=dot"
+  },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.8.3",
     "vitest": "^2.1.9"
   }
 }

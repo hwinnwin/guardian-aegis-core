@@ -300,6 +300,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^2.1.9
         version: 2.1.9(vitest@2.1.9(@types/node@22.18.11)(jsdom@25.0.1))
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.18.11)(jsdom@25.0.1)
@@ -328,8 +331,6 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.18.11)(jsdom@25.0.1)
-
-  tools/aegis-cli: {}
 
 packages:
 
