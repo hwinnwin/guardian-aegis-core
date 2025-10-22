@@ -108,12 +108,13 @@ jobs:
           LINT=$(jq -r '.score // (if (.passed // 0) == 1 then 100 else 0 end)' artifacts/normalized/lint.json 2>/dev/null || echo 0)
           SCORE=$(COV="$COV" BEN="$BEN" LINT="$LINT" python3 - <<'PY'
 import os
+
 c = float(os.environ.get("COV", "0"))
 b = float(os.environ.get("BEN", "0"))
 l = float(os.environ.get("LINT", "0"))
 print(f"{(0.2*l + 0.4*c + 0.4*b):.2f}")
 PY
-)
+          )
           THRESH=99.90
           STATUS=success
           LABEL="PASS"
