@@ -9,6 +9,9 @@ on:
       - labeled
       - ready_for_review
     branches:
+      # TEMPORARY: enable CI test PRs until main and CI branches share history.
+      # Remove this line once mainline is reconciled (see scripts/rebase-to-main.sh).
+      - "ci/changelog-machine-enforce"
       - "main"
       - ci/changelog-machine-enforce  # TEMP: remove after rebase-to-main
   workflow_dispatch: {}
