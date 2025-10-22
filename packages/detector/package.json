@@ -1,22 +1,23 @@
 {
   "name": "@lumen-guardian/detector",
   "version": "0.1.0",
-  "description": "Future Lumen Guardian threat detection engine",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist"
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./node": {
+      "import": "./dist/node.js",
+      "types": "./dist/node.d.ts"
+    },
+    "./worker": "./worker/detector.worker.ts"
   },
-  "keywords": [
-    "threat-detection",
-    "ai",
-    "child-protection",
-    "guardian"
-  ],
-  "author": "Lumen Guardian Team",
-  "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "@vitest/coverage-v8": "^2.1.9",
+    "vitest": "^2.1.9"
   }
 }

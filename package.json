@@ -24,7 +24,11 @@
     "bench:buffer:smoke": "node scripts/smoke-bench-exit.mjs",
     "flags:stamp": "node scripts/flags-stamp.mjs",
     "version:stamp": "node scripts/version-stamp.mjs",
-    "build:dashboard": "pnpm -F @lumen-guardian/dashboard build"
+    "build:dashboard": "pnpm -F @lumen-guardian/dashboard build",
+    "build:detector": "tsc -p packages/detector/tsconfig.json",
+    "test:detector": "vitest run --config packages/detector/vitest.config.ts --reporter=dot",
+    "bench:detector": "node packages/detector/bench/run.mjs",
+    "detector:ci": "pnpm -s build:detector && pnpm -s test:detector && pnpm -s bench:detector"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -85,6 +89,7 @@
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitest/coverage-v8": "^2.1.3",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -99,7 +104,8 @@
     "tsx": "^4.7.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vitest": "^2.1.3"
   },
   "overrides": {
     "react": "18.3.1",
