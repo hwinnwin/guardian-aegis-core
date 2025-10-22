@@ -8,79 +8,8 @@ on:
         required: true
         default: "beta"
 
-env:
-  APP_VERSION: ${{ github.ref_name }}
-  DEPLOY_CHANNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.channel || 'beta' }}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ env.DEPLOY_CHANNEL }}
-  cancel-in-progress: true
-
 jobs:
-  build:
-    name: Build (Dashboard)
+  noop:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - name: Setup Node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
-        with:
-          node-version: '22.19.0'
-          cache: pnpm
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-        with:
-          version: 9
-      - name: Install
-        run: pnpm install --frozen-lockfile
-      - name: Stamp version
-        run: pnpm run version:stamp
-      - name: Build dashboard
-        run: pnpm run build:dashboard
-      - name: Upload version metadata
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: dashboard-version
-          path: version.json
-
-  deploy:
-    name: Deploy (Dashboard)
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: ${{ env.DEPLOY_CHANNEL }}
-    permissions:
-      contents: read
-      deployments: write
-    steps:
-      - name: Checkout (scripts only)
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      - name: Setup Node
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
-        with:
-          node-version: '22.19.0'
-      - name: Install Vercel CLI
-        run: npm i -g vercel@latest
-      - name: Preflight secrets
-        shell: bash
-        run: |
-          : "${{ secrets.VERCEL_TOKEN:?Missing VERCEL_TOKEN }}"
-          : "${{ secrets.VERCEL_ORG_ID:?Missing VERCEL_ORG_ID }}"
-          if [ "${DEPLOY_CHANNEL}" = "production" ]; then
-            : "${{ secrets.VERCEL_PROJECT_ID_PROD:?Missing VERCEL_PROJECT_ID_PROD }}"
-          else
-            : "${{ secrets.VERCEL_PROJECT_ID_BETA:?Missing VERCEL_PROJECT_ID_BETA }}"
-          fi
-      - name: Deploy via Vercel CLI (folder deploy)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ (env.DEPLOY_CHANNEL == 'production') && secrets.VERCEL_PROJECT_ID_PROD || secrets.VERCEL_PROJECT_ID_BETA }}
-        run: |
-          vercel pull --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID"
-          vercel deploy packages/dashboard/dist --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID" \
-            $([[ "${DEPLOY_CHANNEL}" == "production" ]] && echo "--prod" || true)
+      - run: echo "CD dashboard workflow disabled in this branch"
