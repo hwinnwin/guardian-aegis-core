@@ -7,8 +7,6 @@ on:
         description: "beta | production"
         required: true
         default: "beta"
-  push:
-    branches: [ "release/beta-**" ]
 
 env:
   APP_VERSION: ${{ github.ref_name }}
