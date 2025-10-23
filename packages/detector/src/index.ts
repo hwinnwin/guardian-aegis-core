@@ -1,16 +1,33 @@
-/**
- * @lumen-guardian/detector
- * 
- * Phase 2: Threat detection engine
- * 
- * Coming soon:
- * - Pattern matching (regex for known grooming patterns)
- * - Local AI (TensorFlow.js for privacy-first detection)
- * - Cloud AI (GPT-4 integration for advanced analysis)
- * - Consensus voting system (multiple models agree on threat level)
- * - Response handlers (alert generation, evidence collection)
- */
+import { scoreHeuristics } from "./heuristics.js";
+import type { DetectorConfig, AnalyzeInput, AnalyzeResult } from "./types";
 
-export function placeholder() {
-  console.log('Detector package - Phase 2 coming soon');
+let CONFIG: DetectorConfig = { threshold: 0.7, maxWindowMs: 5 * 60_000 };
+
+export function configure(cfg: Partial<DetectorConfig>): void {
+  CONFIG = { ...CONFIG, ...cfg };
 }
+
+export function analyze(input: AnalyzeInput): AnalyzeResult {
+  const ts = typeof input.ts === "number" ? input.ts : Date.now();
+  let text: string;
+  if (typeof input.text === "string") {
+    text = input.text;
+  } else if (input.text == null) {
+    text = "";
+  } else {
+    text = String(input.text);
+  }
+  const { score, reasons } = scoreHeuristics(text);
+  const threshold = CONFIG.threshold ?? 0.7;
+  const passed = score < threshold;
+
+  return {
+    score,
+    passed,
+    reasons,
+    ts
+  };
+}
+
+export { scoreHeuristics } from "./heuristics.js";
+export type { DetectorConfig, AnalyzeInput, AnalyzeResult } from "./types";

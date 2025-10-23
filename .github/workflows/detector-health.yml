@@ -1,0 +1,10 @@
+name: "🧠 Detector Health Score"
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Detector health workflow disabled for branch stabilization"

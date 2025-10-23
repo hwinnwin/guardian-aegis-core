@@ -29,9 +29,14 @@ jobs:
               exit 1
             fi
           done
-      - name: Setup pnpm
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+      - name: Prepare pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.0.0
         with:
           version: 9
-      - name: PNPM frozen install
-        run: pnpm install --frozen-lockfile
+          run_install: false
+      - name: Enable corepack
+        run: corepack enable
+      - name: pnpm fetch
+        run: pnpm fetch
+      - name: pnpm install (offline, frozen)
+        run: pnpm install --offline --frozen-lockfile

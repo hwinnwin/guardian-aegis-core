@@ -4,6 +4,8 @@ dist/
 *.log
 *.zip
 coverage/
+artifacts/
+packages/detector/bench/profile.json
 pnpm-debug.log*
 tmp/
 *.tmp

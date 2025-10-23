@@ -1,0 +1,13 @@
+# NOTE:
+# - Detector CI temporarily disabled pending full detector implementation.
+
+name: 🔬 Detector CI (lint + coverage + bench)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Detector CI workflow disabled for current branch"
