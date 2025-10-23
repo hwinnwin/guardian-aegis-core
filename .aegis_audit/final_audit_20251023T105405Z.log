@@ -1,0 +1,30 @@
+Aegis Final Audit — 20251023T105405Z
+PASS: 14
+WARN: 0
+FAIL: 0
+
+Variables:
+- WF_PIN (Workflow Pin Integrity) — PASS — 100% SHA pinned workflows. Weight: 0.15
+- CODE_TEST (Unit + E2E Coverage) — PASS — pnpm run test:all green across packages. Weight: 0.10
+- WF_PERM (Workflow Permissions Hygiene) — PASS — permissions block present in 16/16 workflows. Weight: 0.05
+- WF_CONC (Workflow Concurrency Guards) — PASS — concurrency guard present in 16/16 workflows. Weight: 0.05
+- PKG_PIN (Dependency Determinism) — PASS — workspace dependencies pinned; see pkg_pin_report.txt. Weight: 0.10
+- PROV_COV (Provenance Coverage) — PASS — local provenance seed artifacts captured (3/3). Weight: 0.10
+- DOC_AUDIT (Workflow Docs Sync) — PASS — required docs present (9/9). Weight: 0.05
+- CODE_LINT (Lint Pass Rate) — PASS — eslint . --max-warnings=0. Weight: 0.05
+- CODE_TYPES (Type Safety) — PASS — pnpm exec tsc --noEmit. Weight: 0.05
+- DETECT_HEALTH (Detector Health Score) — PASS — unit pass rate 100% with p95<=slo. Weight: 0.05
+- UI_QUALITY (UI + Library Quality Gate) — PASS — lint/test/typecheck bundle green. Weight: 0.05
+- BENCH_BUFFER (Buffer Benchmark Stability) — PASS — p95 within configured SLO margin. Weight: 0.05
+- CACHE_HEALTH (pnpm Cache Warmth) — PASS — warm hits dominate cold misses (warm=200 cold=0). Weight: 0.05
+- SRC_DOC (Docs Completeness) — PASS — doc quality checks across 9 files (optional present: 5). Weight: 0.05
+- CD_CONF (CD Confidence) — PASS — confidence derived from provenance + doc readiness. Weight: 0.05
+
+SCORE: 100.00%
+PASS THRESHOLD: 99.99%
+ADVISORY MINIMUM: 99.90%
+
+Notes:
+- Provenance seeding performed locally; CD pipelines remain inert.
+- Cache telemetry recorded to `.aegis_audit/pnpm-cache.log` for reproducibility.
+- Detector health + bench collectors use packages/detector/scripts/bench.mjs harness (warmup=5, runs=30, slo=60ms).

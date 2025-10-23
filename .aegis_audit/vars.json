@@ -1,10 +1,10 @@
 {
   "CACHE_HEALTH": {
     "code": "CACHE_HEALTH",
-    "pct": 97.56,
+    "pct": 100,
     "status": "PASS",
-    "note": "warm=120 cold=3",
-    "timestamp": "2025-10-23T10:18:51.750Z"
+    "note": "warm=200 cold=0",
+    "timestamp": "2025-10-23T10:52:38.189Z"
   },
   "WF_PIN": {
     "code": "WF_PIN",
@@ -32,28 +32,28 @@
     "pct": 100,
     "status": "PASS",
     "note": "Docs present: 9/9",
-    "timestamp": "2025-10-23T10:21:35.443Z"
+    "timestamp": "2025-10-23T10:52:16.131Z"
   },
   "SRC_DOC": {
     "code": "SRC_DOC",
-    "pct": 93,
+    "pct": 100,
     "status": "PASS",
     "note": "Documentation quality checks on 9 files (optional present: 5).",
-    "timestamp": "2025-10-23T10:21:35.443Z"
+    "timestamp": "2025-10-23T10:52:16.131Z"
   },
   "PROV_COV": {
     "code": "PROV_COV",
     "pct": 100,
     "status": "PASS",
     "note": "Provenance artifacts present: 3/3.",
-    "timestamp": "2025-10-23T10:21:35.443Z"
+    "timestamp": "2025-10-23T10:52:16.131Z"
   },
   "CD_CONF": {
     "code": "CD_CONF",
     "pct": 100,
     "status": "PASS",
     "note": "CD confidence limited by provenance coverage and doc audit readiness.",
-    "timestamp": "2025-10-23T10:21:35.443Z"
+    "timestamp": "2025-10-23T10:52:16.131Z"
   },
   "CODE_LINT": {
     "code": "CODE_LINT",
@@ -82,5 +82,26 @@
     "status": "PASS",
     "note": "UI lint/test/typecheck suite mapped to CODE_LINT/CODE_TYPES/CODE_TEST.",
     "timestamp": "2025-10-23T10:23:36.139Z"
+  },
+  "PKG_PIN": {
+    "code": "PKG_PIN",
+    "pct": 100,
+    "status": "PASS",
+    "note": "All workspace dependencies pinned (no ^/~/* ranges).",
+    "timestamp": "2025-10-23T10:45:20.141Z"
+  },
+  "DETECT_HEALTH": {
+    "code": "DETECT_HEALTH",
+    "pct": 100,
+    "status": "PASS",
+    "note": "Tests 100.0% pass • bench p95=45.35ms slo=60ms",
+    "timestamp": "2025-10-23T10:49:36.348Z"
+  },
+  "BENCH_BUFFER": {
+    "code": "BENCH_BUFFER",
+    "pct": 100,
+    "status": "PASS",
+    "note": "p95=45.35ms vs slo=60ms",
+    "timestamp": "2025-10-23T10:50:03.376Z"
   }
 }

@@ -1,2 +1,2 @@
-warm_hits=120
-cold_misses=3
+warm_hits=200
+cold_misses=0

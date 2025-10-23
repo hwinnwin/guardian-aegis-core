@@ -1,25 +1,116 @@
 {
   "version": "3.1-PROD",
   "pass_threshold_pct": 99.99,
-  "advisory_min_pct": 99.90,
+  "advisory_min_pct": 99.9,
   "variables": [
-    { "code": "WF_PIN",        "desc": "Workflow Pin Integrity",           "target_pct": 100,   "weight": 0.15, "source": ".github/workflows/**" },
-    { "code": "CODE_TEST",     "desc": "Unit + E2E Coverage",              "target_pct": 90,    "weight": 0.10, "source": "coverage reports" },
-    { "code": "WF_PERM",       "desc": "Workflow Permissions Hygiene",     "target_pct": 95,    "weight": 0.05, "source": ".github/workflows/**" },
-    { "code": "WF_CONC",       "desc": "Workflow Concurrency Guards",      "target_pct": 90,    "weight": 0.05, "source": ".github/workflows/**" },
-    { "code": "PKG_PIN",       "desc": "Dependency Determinism",           "target_pct": 100,   "weight": 0.10, "source": "pnpm-lock.yaml" },
-    { "code": "PROV_COV",      "desc": "Provenance Coverage",              "target_pct": 100,   "weight": 0.10, "source": "ai-qc-bot signature logs" },
-    { "code": "DOC_AUDIT",     "desc": "Workflow Docs Sync",               "target_pct": 100,   "weight": 0.05, "source": "docs/AI_QC_WORKFLOW.md, README" },
-    { "code": "CODE_LINT",     "desc": "Lint Pass Rate",                   "target_pct": 100,   "weight": 0.05, "source": "lint CI" },
-    { "code": "CODE_TYPES",    "desc": "Type Safety",                      "target_pct": 98,    "weight": 0.05, "source": "tsc diagnostics" },
-    { "code": "DETECT_HEALTH", "desc": "Detector Health Score",            "target_pct": 99.9,  "weight": 0.05, "source": "detector-health.yml" },
-    { "code": "UI_QUALITY",    "desc": "UI + Library Quality Gate",        "target_pct": 99,    "weight": 0.05, "source": "ui-quality.yml" },
-    { "code": "BENCH_BUFFER",  "desc": "Buffer Benchmark Stability",       "target_pct": 99.9,  "weight": 0.05, "source": "bench-buffer.yml" },
-    { "code": "CACHE_HEALTH",  "desc": "pnpm Cache Warmth",                "target_pct": 95,    "weight": 0.05, "source": "PR summary metric" },
-    { "code": "SRC_DOC",       "desc": "Docs Completeness",                "target_pct": 99,    "weight": 0.05, "source": "docs/* checklist" }
+    {
+      "code": "WF_PIN",
+      "desc": "Workflow Pin Integrity",
+      "target_pct": 100,
+      "weight": 0.15,
+      "source": ".github/workflows/**"
+    },
+    {
+      "code": "CODE_TEST",
+      "desc": "Unit + E2E Coverage",
+      "target_pct": 90,
+      "weight": 0.1,
+      "source": "coverage reports"
+    },
+    {
+      "code": "WF_PERM",
+      "desc": "Workflow Permissions Hygiene",
+      "target_pct": 95,
+      "weight": 0.05,
+      "source": ".github/workflows/**"
+    },
+    {
+      "code": "WF_CONC",
+      "desc": "Workflow Concurrency Guards",
+      "target_pct": 90,
+      "weight": 0.05,
+      "source": ".github/workflows/**"
+    },
+    {
+      "code": "PKG_PIN",
+      "desc": "Dependency Determinism",
+      "target_pct": 100,
+      "weight": 0.1,
+      "source": "pnpm-lock.yaml"
+    },
+    {
+      "code": "PROV_COV",
+      "desc": "Provenance Coverage",
+      "target_pct": 100,
+      "weight": 0.1,
+      "source": "ai-qc-bot signature logs"
+    },
+    {
+      "code": "DOC_AUDIT",
+      "desc": "Workflow Docs Sync",
+      "target_pct": 100,
+      "weight": 0.05,
+      "source": "docs/AI_QC_WORKFLOW.md, README"
+    },
+    {
+      "code": "CODE_LINT",
+      "desc": "Lint Pass Rate",
+      "target_pct": 100,
+      "weight": 0.05,
+      "source": "lint CI"
+    },
+    {
+      "code": "CODE_TYPES",
+      "desc": "Type Safety",
+      "target_pct": 98,
+      "weight": 0.05,
+      "source": "tsc diagnostics"
+    },
+    {
+      "code": "DETECT_HEALTH",
+      "desc": "Detector Health Score",
+      "target_pct": 99.9,
+      "weight": 0.05,
+      "source": "detector-health.yml"
+    },
+    {
+      "code": "UI_QUALITY",
+      "desc": "UI + Library Quality Gate",
+      "target_pct": 99,
+      "weight": 0.05,
+      "source": "ui-quality.yml"
+    },
+    {
+      "code": "BENCH_BUFFER",
+      "desc": "Buffer Benchmark Stability",
+      "target_pct": 99.9,
+      "weight": 0.05,
+      "source": "bench-buffer.yml"
+    },
+    {
+      "code": "CACHE_HEALTH",
+      "desc": "pnpm Cache Warmth",
+      "target_pct": 95,
+      "weight": 0.05,
+      "source": "PR summary metric"
+    },
+    {
+      "code": "SRC_DOC",
+      "desc": "Docs Completeness",
+      "target_pct": 99,
+      "weight": 0.05,
+      "source": "docs/* checklist"
+    },
+    {
+      "code": "CD_CONF",
+      "desc": "CD Confidence",
+      "target_pct": 95,
+      "weight": 0.05,
+      "source": "release workflows"
+    }
   ],
   "notes": [
-    "All variables are percentages (0–100).",
+    "All variables are percentages (0\u2013100).",
     "Weights sum to 1.0. Variables absent at runtime must default to 0 with a warning."
   ]
 }

@@ -19,7 +19,7 @@ concurrency:
 jobs:
   detector-health:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -30,11 +30,52 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install workspace dependencies
-        run: npm ci --ignore-scripts
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061
+        with:
+          version: 9
+          run_install: false
 
-      - name: Compute detector health score
-        id: score
+      - name: Restore pnpm store cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.pnpm-store
+          key: detector-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            detector-store-${{ runner.os }}-
+
+      - name: Install dependencies (frozen)
+        run: |
+          pnpm fetch
+          pnpm install --frozen-lockfile
+
+      - name: Detector unit tests (JSON reporter)
+        run: pnpm -w --filter @lumen-guardian/detector... test -- --reporter=json --outputFile=.aegis_audit/detector-tests.json
+
+      - name: Detector benchmark
+        env:
+          DETECTOR_SLO_MS: 60
+        run: pnpm -w --filter @lumen-guardian/detector... bench -- --warmup=5 --runs=30
+
+      - name: Compute detector health metric
+        run: node tools/aegis/collect/collect-detector-health.mjs
+
+      - name: Compute bench buffer metric
+        run: node tools/aegis/collect/collect-bench-buffer.mjs
+
+      - name: Upload detector health artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: detector-health
+          path: |
+            .aegis_audit/detector-tests.json
+            .aegis_audit/detector-bench.json
+            .aegis_audit/bench-summary.json
+            .aegis_audit/vars.json
+
+      - name: Upload detector health badge
+        if: always()
+        id: badge
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -44,8 +85,8 @@ jobs:
           DHS_E2E_STATUS: ${{ vars.DHS_E2E_STATUS }}
         run: node scripts/dhs/detector-health.mjs
 
-      - name: Upload detector health badge
-        if: always() && steps.score.outcome == 'success'
+      - name: Upload Supabase badge
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: detector-health-badge

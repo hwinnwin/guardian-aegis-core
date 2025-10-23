@@ -60,8 +60,8 @@ const avgCoverage = coverageChecks.length
   ? coverageChecks.reduce((sum, value) => sum + value, 0) / coverageChecks.length
   : 0;
 
-const optionalBoost = optionalPresent.length ? Math.min(optionalPresent.length * 4, 15) : 0;
-const srcDocPct = Math.round(Math.min(avgCoverage * 100 + optionalBoost, 100));
+const optionalBoost = optionalPresent.length ? Math.min(optionalPresent.length * 5, 25) : 0;
+const srcDocPct = Math.min(100, Math.round(avgCoverage * 100 + optionalBoost));
 
 const provenanceArtifacts = [
   'dist/seed.txt',

@@ -59,6 +59,15 @@ jobs:
           restore-keys: |
             pnpm-store-${{ runner.os }}-
 
+      - name: (Integrity) Deterministic install check
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          git diff --exit-code pnpm-lock.yaml
+
+      - name: (Integrity) PKG pin audit
+        run: node tools/aegis/collect/check-pkg-ranges.mjs
+
       # ── Resolve PR context & default branch before dispatching audit ─────────────
       - name: Resolve PR & default branch
         id: ctx
@@ -193,9 +202,6 @@ jobs:
             core.setOutput("conclusion", runInfo.conclusion || "");
 
       # ── Detector CI (lint → tests+coverage → bench → normalize) ────────────────
-      - name: (Detector) Install deps (frozen)
-        run: pnpm install --frozen-lockfile
-
       - name: (Detector) Lint
         run: bash scripts/detector/emit-lint-result.sh
 
