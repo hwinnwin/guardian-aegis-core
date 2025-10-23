@@ -1,6 +1,5 @@
 # Aegis Integrity Dashboard — Phase 2
-_Auto-generated 2025-10-23T10:31:53.099Z_
-_Auto-generated 2025-10-23T10:54:21.475Z_
+_Auto-generated 2025-10-23T10:58:27.979Z_
 
 ## Overview
 - Integrity Score (computed): **100.00%** · Target ≥ 99.99% · Advisory ≥ 99.9%
