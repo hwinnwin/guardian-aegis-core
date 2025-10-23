@@ -1,0 +1,128 @@
+name: 🛡️ Aegis Integrity Score
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+    branches: [ "main", "ci/**", "release/**" ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: aegis-integrity-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Enable pnpm (corepack)
+        run: |
+          corepack enable || true
+          corepack prepare pnpm@9 --activate || true
+          command -v pnpm >/dev/null || npm i -g pnpm@9
+
+      - name: Collect variables (sample)
+        run: |
+          mkdir -p .aegis_audit
+          node scripts/release/collect-vars-sample.mjs
+          test -s .aegis_audit/vars.json || { echo "::error::.aegis_audit/vars.json missing"; exit 1; }
+
+      - name: Run Integrity Scorer
+        id: run
+        run: |
+          node scripts/release/score-integrity.mjs \
+            --schema scripts/release/aegis-final-audit-variables.json \
+            --vars .aegis_audit/vars.json
+
+          LOG="$(ls -1t .aegis_audit/integrity_score_*.log | head -n1 || true)"
+          test -n "$LOG" || { echo "::error::Integrity score log not found"; exit 1; }
+
+          SCORE="$(grep -Eo 'SCORE=([0-9]+\.[0-9]+)%' "$LOG" | sed -E 's/.*=([0-9]+\.[0-9]+)%.*/\1/')"
+          VERDICT="$(grep -Eo 'VERDICT=(PASS|ADVISORY|FAIL)' "$LOG" | sed -E 's/.*=(.*)/\1/')"
+
+          echo "log=$LOG"       >> "$GITHUB_OUTPUT"
+          echo "score=$SCORE"   >> "$GITHUB_OUTPUT"
+          echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.4.3
+        with:
+          name: aegis-integrity-artifacts
+          path: |
+            .aegis_audit/vars.json
+            .aegis_audit/integrity_score_*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Post / Update sticky PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const score = '${{ steps.run.outputs.score }}' || '0.00';
+            const verdict = '${{ steps.run.outputs.verdict }}' || 'FAIL';
+            const body = `
+<!-- AEGIS_INTEGRITY_STICKY -->
+### 🛡️ Aegis Integrity Score
+
+**SCORE:** ${score}%  
+**VERDICT:** ${verdict}
+
+Artifacts: **aegis-integrity-artifacts** (see this run)
+Policy: PASS ≥ 99.99% · ADVISORY ≥ 99.90% · else FAIL
+`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, per_page: 100
+            });
+            const prev = comments.find(c => c.user.type === 'Bot' && c.body.includes('<!-- AEGIS_INTEGRITY_STICKY -->'));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: prev.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, body });
+            }
+
+      - name: Emit "Aegis Integrity Score" check
+        if: always()
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const score = parseFloat('${{ steps.run.outputs.score || '0' }}');
+            const verdict = '${{ steps.run.outputs.verdict || 'FAIL' }}';
+            const headSha = context.payload.pull_request?.head?.sha || context.sha;
+
+            const conclusion = (verdict === 'PASS') ? 'success' : (verdict === 'ADVISORY' ? 'neutral' : 'failure');
+            const title = `Integrity: ${score.toFixed(2)}% (${verdict})`;
+            const summary = `PASS ≥ 99.99% · ADVISORY ≥ 99.90% · else FAIL`;
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Aegis Integrity Score',
+              head_sha: headSha,
+              status: 'completed',
+              conclusion,
+              output: { title, summary }
+            });
+
+      - name: Enforce gate (fail on FAIL)
+        if: always()
+        run: |
+          case "${{ steps.run.outputs.verdict }}" in
+            PASS|ADVISORY) echo "Gate OK: ${{ steps.run.outputs.verdict }}";;
+            *) echo "::error::Aegis Integrity Score verdict = FAIL"; exit 1;;
+          esac
