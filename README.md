@@ -1,6 +1,19 @@
+<!-- AEGIS_BANNER -->
+<div align="center">
+
+# ⚪ Guardian Aegis Protocol  
+**Protected by AI-QC Safety Protocol v3.1+**  
+_Autonomous CI/CD • Provenance • Compliance Integrity_
+
+![AI-QC Safety Protocol](https://img.shields.io/badge/AI--QC_Safety_Protocol-v3.1%2B-lightgrey?style=for-the-badge&logo=github)
+
+</div>
+<!-- AEGIS_BANNER -->
+
 [![Changelog Bot](https://img.shields.io/badge/Changelog%20Bot-auto--merge-0e8a16)](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/auto-merge-changelog.yml)
 
 [![Buffer Bench & Validate](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/bench-buffer.yml/badge.svg)](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/bench-buffer.yml)
+[![pnpm Cache Prime](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/pnpm-cache-prime.yml/badge.svg)](https://github.com/hwinnwin/guardian-aegis-core/actions/workflows/pnpm-cache-prime.yml)
 
 # Lumen Guardian — Beta Build
 
@@ -73,4 +86,3 @@ More detailed guidance lives in `docs/ALPHA.md`.
 - [Alpha testing notes](./docs/ALPHA.md)
 
 For feedback or partnership enquiries, reach out at **hello@lumenguardian.app**.
-
