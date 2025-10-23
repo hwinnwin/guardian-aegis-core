@@ -117,7 +117,9 @@ export function ensureOnboardingBanner() {
         shadowButton.textContent = 'Shadow Mode Enabled';
         shadowButton.disabled = true;
         mark('shadow');
-      } catch {}
+      } catch {
+        // intentionally ignore storage write failure
+      }
     });
   }
 

@@ -4,6 +4,8 @@ import { EvidenceService } from '../services/evidence.service';
 import { ActionRouter } from '../services/action-router.service';
 import { classifyAdvisory } from '../detection/decide';
 import type { Interaction } from '../../../buffer/src/types';
+import type { AlertsSink } from '../services/alerts.service';
+import { LockdownService } from '../services/lockdown.service';
 
 async function generateKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -15,13 +17,16 @@ describe('flow classifier', () => {
   });
 
   it('does not dispatch alerts for classifier medium advisory', async () => {
-    const buffer = new RollingBuffer<any>({ maxInteractions: 16, maxDurationMs: 10_000 });
-    const alerts = { dispatch: vi.fn() } as any;
+    const buffer = new RollingBuffer<Interaction>({ maxInteractions: 16, maxDurationMs: 10_000 });
+    const alerts: AlertsSink = { dispatch: vi.fn(async () => {}) };
+    const lockdown = new LockdownService();
+    vi.spyOn(lockdown, 'start').mockImplementation(() => {});
+    vi.spyOn(lockdown, 'stop').mockImplementation(() => {});
     const router = new ActionRouter({
       buffer,
       evidence: new EvidenceService({ getDeviceKey: generateKey }),
       alerts,
-      lockdown: { start: vi.fn(), stop: vi.fn() } as any,
+      lockdown,
       blockNow: vi.fn(),
     });
 

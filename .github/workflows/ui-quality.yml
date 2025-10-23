@@ -11,6 +11,15 @@ on:
       - 'pnpm-lock.yaml'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   quality:
     name: Lint · Test · Typecheck

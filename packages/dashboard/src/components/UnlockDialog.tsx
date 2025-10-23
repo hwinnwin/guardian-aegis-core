@@ -2,19 +2,90 @@ import React from 'react';
 import { getEvidenceById } from '../api/evidence.local';
 import { decryptEvidence } from '../services/decrypt.service';
 import { addAudit } from '../api/audit.local';
-import { getAlertByEvidenceId } from '../api/alerts.local';
-import { annotateInteractions } from '../services/highlight';
+import { getAlertByEvidenceId, type ParentAlert } from '../api/alerts.local';
+import { annotateInteractions, type MatchAnnotation, type InteractionLike } from '../services/highlight';
 import { __DEV__ } from '../core/env';
 import { getUnlockedDeviceKey } from '../services/device-key-cache';
 import { renderVal } from './_renderVal';
 
+type EvidenceInteraction = {
+  timestamp?: number | string;
+  data?: Record<string, unknown> | null;
+  text?: string;
+  [key: string]: unknown;
+};
+
+interface UnlockedEvidence {
+  interactions?: EvidenceInteraction[];
+  [key: string]: unknown;
+}
+
+const isEvidenceInteraction = (value: unknown): value is EvidenceInteraction => {
+  return Boolean(value && typeof value === 'object');
+};
+
+const toInteractionLike = (interaction: EvidenceInteraction): InteractionLike => {
+  const rawTimestamp = (() => {
+    if (typeof interaction.timestamp === 'number') {
+      return Number.isFinite(interaction.timestamp) ? interaction.timestamp : NaN;
+    }
+    if (typeof interaction.timestamp === 'string') {
+      const parsed = Date.parse(interaction.timestamp);
+      return Number.isFinite(parsed) ? parsed : NaN;
+    }
+    return NaN;
+  })();
+  const timestamp = Number.isFinite(rawTimestamp) ? rawTimestamp : 0;
+
+  const data =
+    interaction.data && typeof interaction.data === 'object'
+      ? interaction.data
+      : typeof interaction.text === 'string'
+        ? { text: interaction.text }
+        : undefined;
+
+  return {
+    timestamp,
+    data: data ?? undefined,
+  };
+};
+
+const isUnlockedEvidence = (value: unknown): value is UnlockedEvidence => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (candidate.interactions === undefined) {
+    return true;
+  }
+  if (!Array.isArray(candidate.interactions)) {
+    return false;
+  }
+  return candidate.interactions.every(isEvidenceInteraction);
+};
+
+const toReasonPatterns = (alert: ParentAlert | undefined): string[] => {
+  if (!alert?.reasons) {
+    return [];
+  }
+  return alert.reasons
+    .map((reason) => {
+      if (typeof reason === 'string') return reason;
+      if (reason && typeof reason === 'object' && typeof reason.label === 'string') {
+        return reason.label;
+      }
+      return null;
+    })
+    .filter((pattern): pattern is string => Boolean(pattern));
+};
+
 export function UnlockDialog({ evidenceId, onClose, deviceKey }: { evidenceId: string; onClose(): void; deviceKey?: CryptoKey | null }) {
   const [reason, setReason] = React.useState('');
-  const [data, setData] = React.useState<any | null>(null);
+  const [data, setData] = React.useState<UnlockedEvidence | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const alert = React.useMemo(() => getAlertByEvidenceId(evidenceId), [evidenceId]);
-  const [annotations, setAnnotations] = React.useState<{ matched: boolean; matchedBy: string[] }[] | null>(null);
+  const alert = React.useMemo<ParentAlert | undefined>(() => getAlertByEvidenceId(evidenceId), [evidenceId]);
+  const [annotations, setAnnotations] = React.useState<MatchAnnotation[] | null>(null);
   const activeDeviceKey = deviceKey ?? getUnlockedDeviceKey();
   const wrappedExists = Boolean(localStorage.getItem('guardian_wrapped_device_key'));
 
@@ -27,10 +98,15 @@ export function UnlockDialog({ evidenceId, onClose, deviceKey }: { evidenceId: s
       if (!__DEV__ && wrappedExists && !activeDeviceKey) {
         throw new Error('Parent PIN required. Use Unlock before viewing evidence.');
       }
-
       const payload = await decryptEvidence(packet.sealed, activeDeviceKey ?? undefined);
-      setData(payload);
-      setAnnotations(annotateInteractions(payload?.interactions ?? [], alert?.reasons));
+      if (!isUnlockedEvidence(payload)) {
+        throw new Error('Unexpected evidence payload format');
+      }
+      const interactions = Array.isArray(payload.interactions)
+        ? payload.interactions.filter(isEvidenceInteraction)
+        : [];
+      setData({ ...payload, interactions });
+      setAnnotations(annotateInteractions(interactions.map(toInteractionLike), toReasonPatterns(alert)));
 
       addAudit({
         id: `audit_${Date.now()}`,
@@ -118,14 +194,22 @@ export function UnlockDialog({ evidenceId, onClose, deviceKey }: { evidenceId: s
               borderRadius: 8,
             }}
           >
-            {(data.interactions ?? []).map((interaction: any, index: number) => {
+            {(data.interactions ?? []).map((interaction, index) => {
               const annotation = annotations?.[index];
               const matched = annotation?.matched ?? false;
               const matchedBy = Array.isArray(annotation?.matchedBy) ? annotation?.matchedBy ?? [] : [];
-              const timestamp = interaction?.timestamp
-                ? new Date(interaction.timestamp).toLocaleString()
+              const timestamp =
+                typeof interaction.timestamp === 'number'
+                  ? new Date(interaction.timestamp).toLocaleString()
+                  : interaction.timestamp
+                    ? new Date(interaction.timestamp).toLocaleString()
                 : 'Unknown time';
-              const text = interaction?.data?.text ?? JSON.stringify(interaction?.data ?? interaction, null, 2);
+              const text =
+                typeof interaction.data === 'object' && interaction.data !== null && 'text' in interaction.data
+                  ? String((interaction.data as Record<string, unknown>).text ?? '')
+                  : typeof interaction.text === 'string'
+                    ? interaction.text
+                    : JSON.stringify(interaction.data ?? interaction, null, 2);
 
               return (
                 <div

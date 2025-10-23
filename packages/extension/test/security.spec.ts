@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import manifestJson from '../public/manifest.json';
 
-let manifest: any = {};
-try {
-  manifest = require('../public/manifest.json');
-} catch (error) {
-  manifest = {};
-}
+type ExtensionManifest = {
+  manifest_version?: number;
+  permissions?: string[];
+  background?: {
+    service_worker?: string;
+  };
+};
+
+const manifest = manifestJson as ExtensionManifest;
 
 describe('MV3 manifest security', () => {
   it('uses MV3', () => {

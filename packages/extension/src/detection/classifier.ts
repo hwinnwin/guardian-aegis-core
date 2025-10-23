@@ -4,18 +4,26 @@ import { featurize } from './featurize';
 const MODEL_KEY = 'lg_classifier_model';
 let currentModel: LGModel | null = null;
 
-function reviveModel(raw: any): LGModel | null {
+function reviveModel(raw: unknown): LGModel | null {
   if (!raw) return null;
   try {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (!parsed || typeof parsed !== 'object') return null;
+    const record = parsed as Record<string, unknown>;
+    const thresholds = record.thresholds as { high?: number; medium?: number } | undefined;
+    const weights = Array.isArray(record.weights) ? record.weights : [];
+    const dim = typeof record.dim === 'number' ? record.dim : 0;
+    const bias = typeof record.bias === 'number' ? record.bias : 0;
+    const createdAt = typeof record.createdAt === 'number' ? record.createdAt : Date.now();
     return {
-      version: parsed.version ?? 1,
-      dim: parsed.dim,
-      bias: parsed.bias,
-      weights: new Float32Array(parsed.weights ?? []),
-      createdAt: parsed.createdAt ?? Date.now(),
-      thresholds: parsed.thresholds ?? { high: 0.9, medium: 0.7 },
+      version: typeof record.version === 'number' ? record.version : 1,
+      dim,
+      bias,
+      weights: new Float32Array(weights),
+      createdAt,
+      thresholds: thresholds && typeof thresholds === 'object'
+        ? { high: thresholds.high ?? 0.9, medium: thresholds.medium ?? 0.7 }
+        : { high: 0.9, medium: 0.7 },
     };
   } catch {
     return null;

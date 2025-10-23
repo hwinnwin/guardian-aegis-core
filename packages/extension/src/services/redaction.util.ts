@@ -20,22 +20,32 @@ export function compileReasonRegexes(reasons?: string[]): RegExp[] {
   return regs;
 }
 
-function getAtPath(obj: any, path: string): any {
-  return path.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), obj);
+function getAtPath(obj: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((acc, key) => {
+    if (!acc || typeof acc !== 'object') {
+      return undefined;
+    }
+    return (acc as Record<string, unknown>)[key];
+  }, obj);
 }
 
-function setAtPath(obj: any, path: string, value: any) {
+function setAtPath(obj: unknown, path: string, value: unknown) {
+  if (!obj || typeof obj !== 'object') {
+    return;
+  }
   const parts = path.split('.');
   const last = parts.pop();
   if (!last) return;
-  const target = parts.reduce((acc, key) => {
-    if (acc[key] == null) acc[key] = {};
-    return acc[key];
-  }, obj);
+  const target = parts.reduce<Record<string, unknown>>((acc, key) => {
+    if (!acc[key] || typeof acc[key] !== 'object') {
+      acc[key] = {};
+    }
+    return acc[key] as Record<string, unknown>;
+  }, obj as Record<string, unknown>);
   target[last] = value;
 }
 
-export function redactInteraction(interaction: any, regs: RegExp[], policy: RedactionPolicy): any {
+export function redactInteraction(interaction: unknown, regs: RegExp[], policy: RedactionPolicy): unknown {
   const fields = policy.fields?.length ? policy.fields : ['data.text', 'text'];
   const blurToken = policy.blurToken ?? '•••';
 

@@ -8,7 +8,7 @@ function readAppeals(): TrainSample[] {
   try {
     const records = JSON.parse(localStorage.getItem('guardian_appeals') ?? '[]');
     return (Array.isArray(records) ? records : [])
-      .map((entry: any) => ({ text: entry?.sample?.text ?? '', label: 0 as const }))
+      .map((entry: unknown) => ({ text: entry?.sample?.text ?? '', label: 0 as const }))
       .filter((sample) => sample.text);
   } catch {
     return [];
@@ -50,10 +50,12 @@ export function TrainerPanel() {
     try {
       const metricsRaw = localStorage.getItem('guardian_metrics');
       if (metricsRaw) {
-        const metrics = JSON.parse(metricsRaw);
-        metrics.ts = Date.now();
-        localStorage.setItem('guardian_metrics', JSON.stringify(metrics));
-        window.dispatchEvent(new StorageEvent('storage', { key: 'guardian_metrics' } as any));
+        const metrics = JSON.parse(metricsRaw) as Record<string, unknown>;
+        if (metrics && typeof metrics === 'object') {
+          (metrics as { ts?: number }).ts = Date.now();
+          localStorage.setItem('guardian_metrics', JSON.stringify(metrics));
+          window.dispatchEvent(new StorageEvent('storage', { key: 'guardian_metrics' }));
+        }
       }
     } catch {
       // ignore

@@ -1,0 +1,44 @@
+name: "📊 Aegis Integrity Dashboard Sync"
+
+on:
+  push:
+    paths:
+      - ".aegis_audit/**"
+      - "scripts/release/aegis-final-audit-variables.json"
+      - "tools/aegis/**"
+      - "docs/aegis-integrity-phase2-dashboard.md"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: aegis-dashboard-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Render dashboard
+        run: node tools/aegis/report/render-dashboard.mjs
+
+      - name: Commit dashboard
+        uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7.0.0
+        with:
+          commit_message: "chore(aegis): sync integrity phase 2 dashboard"
+          file_pattern: docs/aegis-integrity-phase2-dashboard.md

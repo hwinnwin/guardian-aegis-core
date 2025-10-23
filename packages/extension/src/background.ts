@@ -2,7 +2,7 @@
 
 export {};
 
-declare const chrome: any;
+declare const chrome: unknown;
 
 chrome?.runtime?.onInstalled?.addListener?.(() => {
   console.info('[Lumen Guardian] Service worker installed');

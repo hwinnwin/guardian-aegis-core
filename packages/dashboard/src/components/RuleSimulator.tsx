@@ -1,6 +1,7 @@
 import React from 'react';
 import rulesYaml from '../../../extension/src/detection/rules.fast.yaml?raw';
 import { loadRules, detectFastPath } from '../../../extension/src/detection/engine';
+import type { DetectionResult } from '../../../extension/src/detection/engine';
 import { emojiHints } from '../../../extension/src/detection/normalize';
 
 let loaded = false;
@@ -8,7 +9,7 @@ let loaded = false;
 export function RuleSimulator() {
   const [text, setText] = React.useState('');
   const [folded, setFolded] = React.useState('');
-  const [hits, setHits] = React.useState<any[]>([]);
+  const [hits, setHits] = React.useState<DetectionResult[]>([]);
 
   React.useEffect(() => {
     if (!loaded) {

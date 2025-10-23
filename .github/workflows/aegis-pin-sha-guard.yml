@@ -1,0 +1,44 @@
+name: "🛡️ Aegis Action SHA Guard"
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "tools/aegis/ci/pin-action-shas.mjs"
+      - "docs/aegis-actions-inventory.md"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: aegis-pin-guard-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v4.0.3
+        with:
+          node-version: "22.19.0"
+
+      - name: Verify GitHub Actions are SHA pinned
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node tools/aegis/ci/pin-action-shas.mjs --check

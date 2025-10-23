@@ -1,17 +1,19 @@
 import React from 'react';
-import { getAlerts } from '../api/alerts.local';
+import { getAlerts, type ParentAlert } from '../api/alerts.local';
 import { UnlockDialog } from './UnlockDialog';
 import { ParentAuthDialog } from './ParentAuthDialog';
 import { setUnlockedDeviceKey } from '../services/device-key-cache';
 
 export function AlertsList() {
-  const [alerts, setAlerts] = React.useState<any[]>([]);
+  const [alerts, setAlerts] = React.useState<ParentAlert[]>([]);
   const [unlockId, setUnlockId] = React.useState<string | null>(null);
   const [authMode, setAuthMode] = React.useState<'setup' | 'unlock' | 'reset-with-recovery' | 'nuke-reset' | null>(null);
   const [deviceKey, setDeviceKey] = React.useState<CryptoKey | null>(null);
 
   React.useEffect(() => {
-    const sync = () => setAlerts(getAlerts());
+    const sync = () => {
+      setAlerts(getAlerts());
+    };
     const onAlert = () => sync();
     const onStorage = (event: StorageEvent) => {
       if (!event.key || event.key === 'guardian_parent_alerts' || event.key === 'guardian_evidence_store') {

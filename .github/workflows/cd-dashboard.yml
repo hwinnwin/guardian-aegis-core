@@ -8,6 +8,15 @@ on:
         required: true
         default: "beta"
 
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   noop:
     runs-on: ubuntu-latest

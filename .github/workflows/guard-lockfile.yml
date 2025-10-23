@@ -9,6 +9,15 @@ on:
       - '.github/workflows/guard-lockfile.yml'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   guard:
     runs-on: ubuntu-latest

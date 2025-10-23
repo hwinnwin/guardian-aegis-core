@@ -3,6 +3,15 @@ name: "🧠 Detector Health Score"
 on:
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   aggregate:
     runs-on: ubuntu-latest

@@ -6,7 +6,7 @@ const KEY = 'guardian_metrics';
 export function publishMetrics() {
   try {
     localStorage.setItem(KEY, JSON.stringify(snapshot()));
-    window.dispatchEvent(new StorageEvent('storage', { key: KEY } as any));
+    window.dispatchEvent(new StorageEvent('storage', { key: KEY }));
   } catch (err) {
     console.warn('[Lumen Guardian] Failed to publish metrics', err);
   }

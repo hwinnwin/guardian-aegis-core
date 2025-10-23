@@ -3,14 +3,48 @@ import { renderVal } from './_renderVal';
 
 const STORAGE_KEY = 'guardian_metrics';
 
+type ShadowProbMetrics = {
+  p95?: number;
+  avg?: number;
+  samples?: number;
+};
+
+type ShadowMetrics = {
+  total?: number;
+  high?: number;
+  medium?: number;
+  agree?: number;
+  highNoFast?: number;
+  fastPathHigher?: number;
+  prob?: ShadowProbMetrics;
+};
+
+type TimeToBlockMetrics = {
+  p50?: number;
+  p95?: number;
+  samples?: number;
+};
+
+interface GuardianMetrics {
+  detections?: number;
+  blocks?: number;
+  critical?: number;
+  advisories?: number;
+  appeals?: number;
+  ttb?: TimeToBlockMetrics;
+  shadow?: ShadowMetrics;
+  rulesCompileErrors?: number;
+  ts?: number;
+}
+
 export function AnalyticsPanel() {
-  const [metrics, setMetrics] = React.useState<any | null>(null);
+  const [metrics, setMetrics] = React.useState<GuardianMetrics | null>(null);
 
   React.useEffect(() => {
     const sync = () => {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        setMetrics(raw ? JSON.parse(raw) : null);
+        setMetrics(raw ? (JSON.parse(raw) as GuardianMetrics) : null);
       } catch {
         setMetrics(null);
       }

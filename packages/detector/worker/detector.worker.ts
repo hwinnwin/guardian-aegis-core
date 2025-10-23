@@ -1,4 +1,5 @@
 import { analyze, configure } from "../src/index";
+import type { DetectorConfig } from "../src/types";
 
 export type WorkerMessage =
   | { type: "configure"; config: Record<string, unknown> }
@@ -13,7 +14,14 @@ declare const self: DedicatedWorkerGlobalScope;
 self.onmessage = (event: MessageEvent<WorkerMessage>) => {
   const message = event.data;
   if (message.type === "configure") {
-    configure((message.config as any) || {});
+    const config: Partial<DetectorConfig> = {};
+    if ("threshold" in message.config && typeof message.config.threshold === "number") {
+      config.threshold = message.config.threshold;
+    }
+    if ("maxWindowMs" in message.config && typeof message.config.maxWindowMs === "number") {
+      config.maxWindowMs = message.config.maxWindowMs;
+    }
+    configure(config);
     self.postMessage({ type: "configured" } satisfies WorkerResponse);
     return;
   }

@@ -5,6 +5,8 @@ import { EvidenceService } from '../services/evidence.service';
 import { loadRules, detectFastPath } from '../detection/engine';
 import rulesYaml from '../detection/rules.fast.yaml?raw';
 import type { Interaction } from '../../../buffer/src/types';
+import type { AlertsSink } from '../services/alerts.service';
+import { LockdownService } from '../services/lockdown.service';
 
 async function mockKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -30,8 +32,10 @@ describe('fast-path detection integration', () => {
   it('routes HIGH severity matches through action router', async () => {
     const buffer = new RollingBuffer({ maxInteractions: 32, maxDurationMs: 10_000 });
     const block = vi.fn();
-    const lockdown = { start: vi.fn(), stop: vi.fn() } as any;
-    const alerts = { dispatch: vi.fn(async () => {}) } as any;
+    const lockdown = new LockdownService();
+    const lockdownStart = vi.spyOn(lockdown, 'start').mockImplementation(() => {});
+    vi.spyOn(lockdown, 'stop').mockImplementation(() => {});
+    const alerts: AlertsSink = { dispatch: vi.fn(async () => {}) };
     const router = new ActionRouter({
       buffer,
       evidence: new EvidenceService({ getDeviceKey: mockKey }),
@@ -53,7 +57,7 @@ describe('fast-path detection integration', () => {
 
     expect(block).toHaveBeenCalled();
     expect(alerts.dispatch).toHaveBeenCalled();
-    expect(lockdown.start).not.toHaveBeenCalled();
+    expect(lockdownStart).not.toHaveBeenCalled();
 
     buffer.destroy();
   });
@@ -61,8 +65,10 @@ describe('fast-path detection integration', () => {
   it('triggers lockdown for CRITICAL matches', async () => {
     const buffer = new RollingBuffer({ maxInteractions: 32, maxDurationMs: 10_000 });
     const block = vi.fn();
-    const lockdown = { start: vi.fn(), stop: vi.fn() } as any;
-    const alerts = { dispatch: vi.fn(async () => {}) } as any;
+    const lockdown = new LockdownService();
+    const lockdownStart = vi.spyOn(lockdown, 'start').mockImplementation(() => {});
+    vi.spyOn(lockdown, 'stop').mockImplementation(() => {});
+    const alerts: AlertsSink = { dispatch: vi.fn(async () => {}) };
     const router = new ActionRouter({
       buffer,
       evidence: new EvidenceService({ getDeviceKey: mockKey }),
@@ -84,7 +90,7 @@ describe('fast-path detection integration', () => {
 
     expect(block).toHaveBeenCalled();
     expect(alerts.dispatch).toHaveBeenCalled();
-    expect(lockdown.start).toHaveBeenCalled();
+    expect(lockdownStart).toHaveBeenCalled();
 
     buffer.destroy();
   });

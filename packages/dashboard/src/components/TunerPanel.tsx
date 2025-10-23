@@ -6,27 +6,50 @@ interface Thresholds {
   high: number;
 }
 
-function readModel(): { thresholds: Thresholds; raw: any } | null {
+type ShadowMetrics = {
+  total?: number;
+  high?: number;
+  highNoFast?: number;
+  fastPathHigher?: number;
+  agree?: number;
+};
+
+type GuardianMetrics = {
+  shadow?: ShadowMetrics;
+  [key: string]: unknown;
+};
+
+const DEFAULT_THRESHOLDS: Thresholds = { medium: 0.7, high: 0.9 };
+
+function readModel(): { thresholds: Thresholds; raw: unknown } | null {
   try {
     const raw = localStorage.getItem('lg_classifier_model');
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const thresholds = parsed?.thresholds ?? { medium: 0.7, high: 0.9 };
+    const parsed = JSON.parse(raw) as { thresholds?: Thresholds };
+    const candidate = parsed?.thresholds;
+    const thresholds =
+      candidate &&
+      typeof candidate.medium === 'number' &&
+      typeof candidate.high === 'number'
+        ? candidate
+        : DEFAULT_THRESHOLDS;
     return { thresholds, raw: parsed };
   } catch {
     return null;
   }
 }
 
-function writeModel(raw: any) {
+function writeModel(raw: unknown) {
   try {
     localStorage.setItem('lg_classifier_model', JSON.stringify(raw));
     const metricsRaw = localStorage.getItem('guardian_metrics');
     if (metricsRaw) {
-      const metrics = JSON.parse(metricsRaw);
-      metrics.ts = Date.now();
-      localStorage.setItem('guardian_metrics', JSON.stringify(metrics));
-      window.dispatchEvent(new StorageEvent('storage', { key: 'guardian_metrics' } as any));
+      const metrics = JSON.parse(metricsRaw) as GuardianMetrics & { ts?: number };
+      if (metrics && typeof metrics === 'object') {
+        metrics.ts = Date.now();
+        localStorage.setItem('guardian_metrics', JSON.stringify(metrics));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'guardian_metrics' }));
+      }
     }
   } catch (err) {
     console.warn('[Lumen Guardian] Failed to save model thresholds', err);
@@ -38,7 +61,7 @@ export function TunerPanel() {
   const [medium, setMedium] = React.useState(modelInfo?.thresholds.medium ?? 0.7);
   const [high, setHigh] = React.useState(modelInfo?.thresholds.high ?? 0.88);
   const [status, setStatus] = React.useState('');
-  const [metrics, setMetrics] = React.useState<any | null>(null);
+  const [metrics, setMetrics] = React.useState<GuardianMetrics | null>(null);
 
   const confusion = React.useMemo(() => {
     if (!metrics?.shadow) return null;
@@ -69,7 +92,7 @@ export function TunerPanel() {
     const sync = () => {
       try {
         const raw = localStorage.getItem('guardian_metrics');
-        setMetrics(raw ? JSON.parse(raw) : null);
+        setMetrics(raw ? (JSON.parse(raw) as GuardianMetrics) : null);
       } catch {
         setMetrics(null);
       }

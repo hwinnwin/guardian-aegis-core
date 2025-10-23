@@ -23,7 +23,7 @@ export class EvidenceService {
 
     const policy: RedactionPolicy = this.cfg.redaction?.policy ?? { fields: ['text', 'data.text'], blurToken: '•••' };
     const regs = compileReasonRegexes(ctx?.patternSources ?? ctx?.reasons);
-    const redactedInteractions = (snap.interactions as any[]).map((interaction) =>
+    const redactedInteractions = snap.interactions.map((interaction) =>
       redactInteraction(interaction, regs, policy)
     );
 

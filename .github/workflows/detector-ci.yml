@@ -6,6 +6,15 @@ name: 🔬 Detector CI (lint + coverage + bench)
 on:
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   noop:
     runs-on: ubuntu-latest

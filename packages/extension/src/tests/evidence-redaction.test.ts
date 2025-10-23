@@ -1,15 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { EvidenceService } from '../services/evidence.service';
+import type { Snapshot, Interaction } from '../../../buffer/src/types';
 
 async function generateKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 }
 
-async function decryptPacket(sealed: Uint8Array, key: CryptoKey) {
+type EvidencePayload = {
+  label?: string;
+  reasons?: string[];
+  interactions: Array<{ text?: string }>;
+};
+
+async function decryptPacket(sealed: Uint8Array, key: CryptoKey): Promise<EvidencePayload> {
   const iv = sealed.slice(0, 12);
   const ciphertext = sealed.slice(12);
   const buffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-  return JSON.parse(new TextDecoder().decode(buffer));
+  return JSON.parse(new TextDecoder().decode(buffer)) as EvidencePayload;
 }
 
 describe('EvidenceService redaction', () => {
@@ -20,15 +27,17 @@ describe('EvidenceService redaction', () => {
       redaction: { policy: { fields: ['text'], blurToken: '•••' } },
     });
 
-    const snap = {
+    const interactions: Interaction[] = [
+      { timestamp: 1, text: "let's switch to telegram", id: 'int-1', sender: { id: 'u1', name: 'Child' }, platform: 'generic' },
+      { timestamp: 2, text: 'see you later', id: 'int-2', sender: { id: 'u1', name: 'Child' }, platform: 'generic' },
+    ];
+    const snap: Snapshot = {
       id: 'snap-1',
-      createdAt: 1_000,
+      capturedAt: 1_000,
+      reason: 'move-off',
       threatLevel: 'HIGH',
-      interactions: [
-        { timestamp: 1, text: "let's switch to telegram" },
-        { timestamp: 2, text: 'see you later' },
-      ],
-    } as any;
+      interactions,
+    };
 
     const packet = await svc.sealSnapshot(snap, 'HIGH', 'move-off', {
       label: 'move_off_platform_invite',
@@ -45,12 +54,21 @@ describe('EvidenceService redaction', () => {
   it('keeps original when no reasons provided', async () => {
     const key = await generateKey();
     const svc = new EvidenceService({ getDeviceKey: async () => key });
-    const snap = {
+    const snap: Snapshot = {
       id: 'snap-2',
-      createdAt: 2_000,
+      capturedAt: 2_000,
+      reason: 'demo',
       threatLevel: 'HIGH',
-      interactions: [{ timestamp: 1, text: 'hello' }],
-    } as any;
+      interactions: [
+        {
+          id: 'int-3',
+          timestamp: 1,
+          text: 'hello',
+          sender: { id: 'child', name: 'Child' },
+          platform: 'generic',
+        },
+      ],
+    };
 
     const packet = await svc.sealSnapshot(snap, 'HIGH', 'demo');
     const payload = await decryptPacket(packet.sealed, key);

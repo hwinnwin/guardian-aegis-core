@@ -1,0 +1,86 @@
+{
+  "CACHE_HEALTH": {
+    "code": "CACHE_HEALTH",
+    "pct": 97.56,
+    "status": "PASS",
+    "note": "warm=120 cold=3",
+    "timestamp": "2025-10-23T10:18:51.750Z"
+  },
+  "WF_PIN": {
+    "code": "WF_PIN",
+    "pct": 100,
+    "status": "PASS",
+    "note": "Pinned uses: 57/57",
+    "timestamp": "2025-10-23T10:00:27.923Z"
+  },
+  "WF_PERM": {
+    "code": "WF_PERM",
+    "pct": 100,
+    "status": "PASS",
+    "note": "Workflows with explicit permissions block: 16/16",
+    "timestamp": "2025-10-23T10:00:27.924Z"
+  },
+  "WF_CONC": {
+    "code": "WF_CONC",
+    "pct": 100,
+    "status": "PASS",
+    "note": "Workflows with concurrency defined: 16/16",
+    "timestamp": "2025-10-23T10:00:27.924Z"
+  },
+  "DOC_AUDIT": {
+    "code": "DOC_AUDIT",
+    "pct": 100,
+    "status": "PASS",
+    "note": "Docs present: 9/9",
+    "timestamp": "2025-10-23T10:21:35.443Z"
+  },
+  "SRC_DOC": {
+    "code": "SRC_DOC",
+    "pct": 93,
+    "status": "PASS",
+    "note": "Documentation quality checks on 9 files (optional present: 5).",
+    "timestamp": "2025-10-23T10:21:35.443Z"
+  },
+  "PROV_COV": {
+    "code": "PROV_COV",
+    "pct": 100,
+    "status": "PASS",
+    "note": "Provenance artifacts present: 3/3.",
+    "timestamp": "2025-10-23T10:21:35.443Z"
+  },
+  "CD_CONF": {
+    "code": "CD_CONF",
+    "pct": 100,
+    "status": "PASS",
+    "note": "CD confidence limited by provenance coverage and doc audit readiness.",
+    "timestamp": "2025-10-23T10:21:35.443Z"
+  },
+  "CODE_LINT": {
+    "code": "CODE_LINT",
+    "pct": 100,
+    "status": "PASS",
+    "note": "eslint . --max-warnings=0",
+    "timestamp": "2025-10-23T10:23:20.825Z"
+  },
+  "CODE_TYPES": {
+    "code": "CODE_TYPES",
+    "pct": 100,
+    "status": "PASS",
+    "note": "pnpm exec tsc --noEmit",
+    "timestamp": "2025-10-23T10:23:20.825Z"
+  },
+  "CODE_TEST": {
+    "code": "CODE_TEST",
+    "pct": 100,
+    "status": "PASS",
+    "note": "pnpm run test:all",
+    "timestamp": "2025-10-23T10:23:20.825Z"
+  },
+  "UI_QUALITY": {
+    "code": "UI_QUALITY",
+    "pct": 100,
+    "status": "PASS",
+    "note": "UI lint/test/typecheck suite mapped to CODE_LINT/CODE_TYPES/CODE_TEST.",
+    "timestamp": "2025-10-23T10:23:36.139Z"
+  }
+}
