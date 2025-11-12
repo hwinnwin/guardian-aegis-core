@@ -1,4 +1,4 @@
-import { Shield, Code, Lock, Heart, Github } from "lucide-react";
+import { Shield, Code, Lock, Heart, Github, Zap, Key, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -71,8 +71,58 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Architecture Section */}
+      {/* Key Features Section */}
       <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Key Features</h2>
+            <p className="text-xl text-muted-foreground">
+              Enterprise-grade protection with privacy first
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                title: "End-to-End Encrypted Evidence",
+                description: "All captured interactions are encrypted with AES-256-GCM before storage. Only parents with the device key can decrypt and view evidence.",
+                icon: ShieldCheck,
+                color: "text-primary",
+                bgColor: "bg-primary/10",
+              },
+              {
+                title: "Real-Time Threat Detection",
+                description: "Multi-layered detection engine combines YAML rules, pattern matching, and ML classifiers to identify threats instantly as they occur.",
+                icon: Zap,
+                color: "text-accent",
+                bgColor: "bg-accent/10",
+              },
+              {
+                title: "Parent Authentication",
+                description: "PIN-based parent access with lockdown mode. Failed attempts trigger cooldowns and audit logs for complete accountability.",
+                icon: Key,
+                color: "text-primary",
+                bgColor: "bg-primary/10",
+              },
+            ].map((feature) => (
+              <Card key={feature.title} className="border-border/50 hover:border-primary/50 transition-all hover:shadow-[var(--shadow-elevated)]">
+                <CardContent className="p-8 space-y-4">
+                  <div className={`w-12 h-12 rounded-lg ${feature.bgColor} flex items-center justify-center`}>
+                    <feature.icon className={`w-6 h-6 ${feature.color}`} />
+                  </div>
+                  <h3 className="text-xl font-bold">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture Section */}
+      <section className="py-20 bg-gradient-to-b from-transparent to-card/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Monorepo Architecture</h2>
@@ -153,7 +203,7 @@ const Index = () => {
       </section>
 
       {/* Performance Section */}
-      <section className="py-20 bg-gradient-to-b from-card/50 to-transparent">
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-4xl font-bold text-center mb-12">
