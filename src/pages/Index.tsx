@@ -12,7 +12,7 @@ const Index = () => {
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary mb-4">
               <Shield className="w-4 h-4" />
-              Phase 1: Complete ✓
+              All Phases: Complete ✓
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
@@ -94,26 +94,26 @@ const Index = () => {
               {
                 package: "@guardian/detector",
                 phase: "Phase 2",
-                status: "Coming Soon",
-                description: "AI-powered threat detection engine",
+                status: "Complete",
+                description: "YAML-based rule engine with pattern matching",
                 icon: Lock,
-                complete: false,
+                complete: true,
               },
               {
                 package: "@guardian/extension",
                 phase: "Phase 3",
-                status: "Coming Soon",
-                description: "Browser extension for real-time monitoring",
+                status: "Complete",
+                description: "Real-time monitoring with lockdown & evidence capture",
                 icon: Code,
-                complete: false,
+                complete: true,
               },
               {
                 package: "@guardian/dashboard",
                 phase: "Phase 4",
-                status: "Coming Soon",
-                description: "Parent dashboard and alert system",
+                status: "Complete",
+                description: "Encrypted alerts, analytics & ML training UI",
                 icon: Heart,
-                complete: false,
+                complete: true,
               },
             ].map((item) => (
               <Card 
