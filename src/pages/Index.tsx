@@ -1,6 +1,7 @@
 import { Shield, Code, Lock, Heart, Github, Zap, Key, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ThreatDetectionDemo } from "@/components/ThreatDetectionDemo";
 
 const Index = () => {
   return (
@@ -121,50 +122,24 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Live Demo Section */}
+      {/* Interactive Demo Section */}
       <section className="py-20 bg-gradient-to-b from-transparent to-card/50">
         <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold mb-4">See Guardian In Action</h2>
+              <h2 className="text-4xl font-bold mb-4">Try Guardian's Detection Engine</h2>
               <p className="text-xl text-muted-foreground">
-                Watch how Guardian detects and responds to threats in real-time
+                Type any message and see how Guardian identifies threats in real-time
               </p>
             </div>
 
-            <Card className="border-primary/20 overflow-hidden shadow-[var(--shadow-elevated)]">
-              <CardContent className="p-0">
-                <div className="relative aspect-video bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                  {/* Video/GIF placeholder - replace with actual demo video */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8">
-                    <Shield className="w-20 h-20 text-primary/40" />
-                    <p className="text-2xl font-bold text-muted-foreground">Live Demo Video</p>
-                    <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Replace this placeholder with your demo video showing Guardian detecting threats in real-time
-                    </p>
-                  </div>
-                  {/* Uncomment when you have the actual video/GIF:
-                  <video 
-                    controls 
-                    poster="/path-to-poster-image.jpg"
-                    className="w-full h-full object-cover"
-                  >
-                    <source src="/path-to-demo-video.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                  */}
-                  {/* Or for animated GIF:
-                  <img 
-                    src="/path-to-demo.gif" 
-                    alt="Guardian threat detection demo"
-                    className="w-full h-full object-cover"
-                  />
-                  */}
-                </div>
+            <Card className="border-primary/20 shadow-[var(--shadow-elevated)]">
+              <CardContent className="pt-6">
+                <ThreatDetectionDemo />
               </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-3 gap-6 mt-8">
+            <div className="grid md:grid-cols-3 gap-6 mt-12">
               {[
                 { step: "1", title: "Monitor", desc: "Guardian watches conversations in real-time" },
                 { step: "2", title: "Detect", desc: "AI identifies suspicious patterns instantly" },

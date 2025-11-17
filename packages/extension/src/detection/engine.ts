@@ -74,7 +74,7 @@ export function loadRules(yamlText: string) {
         if (!regex) return null;
         return { regex, name: pattern.name };
       })
-      .filter((entry): entry is CompiledPattern => Boolean(entry));
+      .filter((entry) => entry !== null) as CompiledPattern[];
 
     const negatives: RegExp[] = (value.negatives ?? [])
       .map((neg) => compileRegex(neg))
