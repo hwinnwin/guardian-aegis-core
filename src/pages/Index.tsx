@@ -121,6 +121,68 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Live Demo Section */}
+      <section className="py-20 bg-gradient-to-b from-transparent to-card/50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold mb-4">See Guardian In Action</h2>
+              <p className="text-xl text-muted-foreground">
+                Watch how Guardian detects and responds to threats in real-time
+              </p>
+            </div>
+
+            <Card className="border-primary/20 overflow-hidden shadow-[var(--shadow-elevated)]">
+              <CardContent className="p-0">
+                <div className="relative aspect-video bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                  {/* Video/GIF placeholder - replace with actual demo video */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8">
+                    <Shield className="w-20 h-20 text-primary/40" />
+                    <p className="text-2xl font-bold text-muted-foreground">Live Demo Video</p>
+                    <p className="text-sm text-muted-foreground text-center max-w-md">
+                      Replace this placeholder with your demo video showing Guardian detecting threats in real-time
+                    </p>
+                  </div>
+                  {/* Uncomment when you have the actual video/GIF:
+                  <video 
+                    controls 
+                    poster="/path-to-poster-image.jpg"
+                    className="w-full h-full object-cover"
+                  >
+                    <source src="/path-to-demo-video.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                  */}
+                  {/* Or for animated GIF:
+                  <img 
+                    src="/path-to-demo.gif" 
+                    alt="Guardian threat detection demo"
+                    className="w-full h-full object-cover"
+                  />
+                  */}
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid md:grid-cols-3 gap-6 mt-8">
+              {[
+                { step: "1", title: "Monitor", desc: "Guardian watches conversations in real-time" },
+                { step: "2", title: "Detect", desc: "AI identifies suspicious patterns instantly" },
+                { step: "3", title: "Protect", desc: "Parents receive encrypted alerts immediately" },
+              ].map((item) => (
+                <div key={item.step} className="text-center space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary font-bold text-xl flex items-center justify-center mx-auto mb-3">
+                    {item.step}
+                  </div>
+                  <h3 className="font-semibold text-lg">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Architecture Section */}
       <section className="py-20 bg-gradient-to-b from-transparent to-card/50">
         <div className="container mx-auto px-4">
