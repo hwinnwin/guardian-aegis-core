@@ -1,8 +1,8 @@
-# Lumen Guardian
+# Lumyn Guardian Aegis
 
 **Privacy-first child safety for the modern web**
 
-Lumen Guardian is a browser-based safety layer that protects children from online predators while respecting family privacy. The extension runs 100% locally—no cloud processing, no data collection, no tracking. Real-time detection blocks grooming attempts before they escalate, while parents maintain oversight through PIN-protected evidence review.
+Lumyn Guardian Aegis is a browser-based safety layer that protects children from online predators while respecting family privacy. The extension runs 100% locally—no cloud processing, no data collection, no tracking. Real-time detection blocks grooming attempts before they escalate, while parents maintain oversight through PIN-protected evidence review.
 
 ## Project Status
 
