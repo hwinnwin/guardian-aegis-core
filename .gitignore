@@ -9,3 +9,21 @@ tmp/
 *.tmp
 *.swp
 /.vite
+
+# IP addresses and network configuration
+*.env
+*.env.*
+.env.local
+.env.production
+.env.development
+config/ips.json
+config/ip-*.json
+config/whitelist.json
+config/blacklist.json
+ip-addresses.txt
+ip-whitelist.txt
+ip-blacklist.txt
+server-ips.txt
+network-config.json
+hosts.txt
+servers.json
