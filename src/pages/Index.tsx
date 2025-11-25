@@ -1,4 +1,4 @@
-import { Shield, Code, Lock, Heart, Github, Zap, Key, ShieldCheck, TrendingUp, Clock, Target, CheckCircle } from "lucide-react";
+import { Shield, Code, Lock, Heart, Github, Zap, Key, ShieldCheck, TrendingUp, Clock, Target, CheckCircle, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThreatDetectionDemo } from "@/components/ThreatDetectionDemo";
@@ -262,8 +262,118 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Architecture Section */}
+      {/* Comparison Table Section */}
       <section className="py-20 bg-gradient-to-b from-transparent to-card/50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold mb-4">Why Choose Guardian?</h2>
+              <p className="text-xl text-muted-foreground">
+                Compare Guardian's approach to typical commercial child safety solutions
+              </p>
+            </div>
+
+            <Card className="border-border/50 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left p-6 font-semibold text-foreground bg-muted/50">Feature</th>
+                        <th className="text-center p-6 font-semibold bg-primary/10 text-primary">
+                          <div className="flex items-center justify-center gap-2">
+                            <Shield className="w-5 h-5" />
+                            Guardian
+                          </div>
+                        </th>
+                        <th className="text-center p-6 font-semibold text-muted-foreground bg-muted/20">
+                          Commercial Solutions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        {
+                          feature: "Cost",
+                          guardian: "100% Free Forever",
+                          others: "$10-50/month per child",
+                        },
+                        {
+                          feature: "Open Source",
+                          guardian: "Fully transparent code",
+                          others: "Proprietary/closed",
+                        },
+                        {
+                          feature: "Privacy",
+                          guardian: "End-to-end encrypted",
+                          others: "Data collected & sold",
+                        },
+                        {
+                          feature: "Local Processing",
+                          guardian: "On-device detection",
+                          others: "Cloud-based scanning",
+                        },
+                        {
+                          feature: "Access Control",
+                          guardian: "No paywalls or limits",
+                          others: "Premium features locked",
+                        },
+                        {
+                          feature: "Detection Speed",
+                          guardian: "< 10ms real-time",
+                          others: "Delayed (cloud latency)",
+                        },
+                        {
+                          feature: "Community Driven",
+                          guardian: "Contributors welcome",
+                          others: "Corporate controlled",
+                        },
+                        {
+                          feature: "Data Ownership",
+                          guardian: "Parent owns all data",
+                          others: "Vendor owns data",
+                        },
+                      ].map((row, idx) => (
+                        <tr key={idx} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="p-6 font-medium text-foreground">{row.feature}</td>
+                          <td className="p-6 bg-primary/5">
+                            <div className="flex items-center justify-center gap-3">
+                              <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              <span className="text-sm font-medium text-foreground">{row.guardian}</span>
+                            </div>
+                          </td>
+                          <td className="p-6 bg-muted/10">
+                            <div className="flex items-center justify-center gap-3">
+                              <X className="w-5 h-5 text-destructive flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground">{row.others}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-12 text-center">
+              <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-transparent inline-block">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <Heart className="w-6 h-6 text-primary" />
+                    <p className="text-lg font-semibold text-foreground">
+                      Our mission: Protect <span className="text-primary">ALL</span> children, not just paying customers
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture Section */}
+      <section className="py-20 bg-gradient-to-b from-card/50 to-transparent">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Monorepo Architecture</h2>
