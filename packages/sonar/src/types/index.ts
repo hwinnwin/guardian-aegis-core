@@ -477,7 +477,7 @@ export interface ThermalConfig {
 // ============================================================================
 
 /** Detection source types */
-export type DetectionSource = 'sonar' | 'thermal' | 'visual' | 'radar' | 'ais';
+export type DetectionSource = 'sonar' | 'thermal' | 'visual' | 'radar' | 'ais' | 'resonance' | 'beacon';
 
 /** Fused detection from multiple sensors */
 export interface FusedDetection {
@@ -534,4 +534,221 @@ export interface SensorCapability {
   accuracy: number;              // 0-1
   conditions: string[];          // Optimal conditions
   limitations: string[];         // Known limitations
+}
+
+// ============================================================================
+// RESONANCE MAPPING TYPES
+// ============================================================================
+
+/** Resonance detection modes */
+export type ResonanceMode =
+  | 'acoustic_resonance'      // Detect resonant frequency of objects
+  | 'harmonic_analysis'       // Analyze harmonic patterns
+  | 'swept_frequency'         // Sweep through frequency range
+  | 'pulse_resonance'         // Short pulse resonance detection
+  | 'continuous_wave';        // Continuous wave analysis
+
+/** Resonance scan result */
+export interface ResonanceScan {
+  id: string;
+  timestamp: number;
+  location: GeoCoordinate;
+  mode: ResonanceMode;
+  frequencyRangeHz: { min: number; max: number };
+  scanDurationMs: number;
+  detectedResonances: ResonanceSignature[];
+}
+
+/** Resonance signature of detected object */
+export interface ResonanceSignature {
+  id: string;
+  location: GeoCoordinate;
+  fundamentalFrequencyHz: number;       // Primary resonant frequency
+  harmonics: number[];                   // Harmonic frequencies
+  qualityFactor: number;                 // Q factor (sharpness of resonance)
+  dampingRatio: number;                  // How quickly vibration decays
+  amplitudeProfile: number[];            // Amplitude at each frequency
+  phaseProfile: number[];                // Phase shift at each frequency
+  classification: ResonanceClassification;
+  confidence: ConfidenceLevel;
+  bodyMassEstimateKg?: number;           // Estimated mass from resonance
+  firstDetectedAt: number;
+  lastDetectedAt: number;
+}
+
+/** Resonance-based object classification */
+export type ResonanceClassification =
+  | 'human_body'              // Human body resonance (40-80 Hz chest cavity)
+  | 'human_breathing'         // Breathing pattern detected
+  | 'human_heartbeat'         // Heartbeat resonance detected
+  | 'human_submerged'         // Submerged human (different resonance in water)
+  | 'human_buried'            // Buried under sand/debris
+  | 'marine_mammal'           // Dolphin, seal, etc.
+  | 'fish_school'             // School of fish
+  | 'debris_metal'            // Metal debris
+  | 'debris_organic'          // Organic debris (wood, seaweed)
+  | 'vessel_hull'             // Boat hull resonance
+  | 'geological'              // Rock, reef, seabed
+  | 'unknown';
+
+/** Resonance engine configuration */
+export interface ResonanceConfig {
+  defaultMode: ResonanceMode;
+  frequencyRangeHz: { min: number; max: number };
+  scanIntervalMs: number;
+  sensitivityDb: number;
+  humanResonancePatterns: ResonancePattern[];
+  detectBreathing: boolean;
+  detectHeartbeat: boolean;
+  estimateBodyMass: boolean;
+}
+
+/** Known resonance pattern for matching */
+export interface ResonancePattern {
+  name: string;
+  fundamentalHz: { min: number; max: number };
+  harmonicRatios: number[];              // Ratios to fundamental
+  expectedQFactor: { min: number; max: number };
+  classification: ResonanceClassification;
+}
+
+// ============================================================================
+// PERSONAL BEACON / TRACKER TYPES
+// ============================================================================
+
+/** Personal tracker device types */
+export type TrackerDeviceType =
+  | 'wrist_band'              // Dedicated wrist device
+  | 'smart_watch'             // Smart watch with app
+  | 'phone_app'               // Smartphone application
+  | 'pendant'                 // Wearable pendant
+  | 'clip_on'                 // Clip-on beacon
+  | 'embedded'                // Embedded in wetsuit/life jacket
+  | 'child_bracelet';         // Child-specific bracelet
+
+/** Tracker connection status */
+export type TrackerStatus =
+  | 'active'                  // Normal operation, tracking
+  | 'sos_triggered'           // Emergency SOS activated
+  | 'low_battery'             // Battery below 20%
+  | 'critical_battery'        // Battery below 5%
+  | 'water_immersion'         // Water immersion detected
+  | 'fall_detected'           // Fall/impact detected
+  | 'no_movement'             // No movement for extended period
+  | 'out_of_range'            // Lost connection
+  | 'offline';                // Device powered off or dead
+
+/** Registered personal tracker */
+export interface PersonalTracker {
+  id: string;
+  deviceType: TrackerDeviceType;
+  deviceModel?: string;
+  ownerId: string;                        // Link to person
+  ownerName: string;
+  phoneNumber?: string;                   // For SMS alerts
+  emergencyContacts: EmergencyContact[];
+  status: TrackerStatus;
+  batteryPercent: number;
+  lastKnownLocation?: GeoCoordinate;
+  lastLocationUpdate?: number;
+  lastHeartbeatTime?: number;             // Last check-in
+  registeredAt: number;
+  settings: TrackerSettings;
+}
+
+/** Emergency contact for tracker */
+export interface EmergencyContact {
+  name: string;
+  phone: string;
+  email?: string;
+  relationship: string;
+  notifyOnSOS: boolean;
+  notifyOnLowBattery: boolean;
+}
+
+/** Tracker configuration settings */
+export interface TrackerSettings {
+  trackingIntervalSeconds: number;        // How often to report location
+  sosButtonEnabled: boolean;
+  autoSOSOnWaterImmersion: boolean;
+  autoSOSOnFallDetection: boolean;
+  autoSOSAfterNoMovementMinutes?: number;
+  geofenceEnabled: boolean;
+  geofenceAreas?: GeofenceArea[];
+  shareLocationWithContacts: boolean;
+  lowBatteryAlertPercent: number;
+}
+
+/** Geofence area for alerts */
+export interface GeofenceArea {
+  id: string;
+  name: string;
+  center: GeoCoordinate;
+  radiusMeters: number;
+  type: 'safe_zone' | 'danger_zone' | 'alert_zone';
+  alertOnEnter: boolean;
+  alertOnExit: boolean;
+}
+
+/** Real-time location update from tracker */
+export interface TrackerLocationUpdate {
+  trackerId: string;
+  timestamp: number;
+  location: GeoCoordinate;
+  accuracy: number;                       // GPS accuracy in meters
+  source: 'gps' | 'cell_tower' | 'wifi' | 'bluetooth';
+  speed?: number;                         // m/s
+  heading?: number;                       // degrees
+  batteryPercent: number;
+  inWater: boolean;
+  vitals?: TrackerVitals;
+}
+
+/** Vital signs from wrist tracker (if supported) */
+export interface TrackerVitals {
+  heartRateBpm?: number;
+  bloodOxygenPercent?: number;            // SpO2
+  skinTemperatureCelsius?: number;
+  stressLevel?: 'low' | 'medium' | 'high';
+  activityState: 'stationary' | 'walking' | 'running' | 'swimming' | 'unknown';
+  timestampVitals: number;
+}
+
+/** SOS alert from tracker */
+export interface SOSAlert {
+  id: string;
+  trackerId: string;
+  personName: string;
+  triggeredAt: number;
+  triggerType: 'manual' | 'water_immersion' | 'fall_detection' | 'no_movement' | 'geofence_violation';
+  location: GeoCoordinate;
+  locationAccuracy: number;
+  batteryPercent: number;
+  vitals?: TrackerVitals;
+  status: 'active' | 'acknowledged' | 'rescue_dispatched' | 'resolved' | 'false_alarm';
+  acknowledgedBy?: string;
+  acknowledgedAt?: number;
+  notes?: string;
+}
+
+/** Tracker service configuration */
+export interface TrackerServiceConfig {
+  maxTrackersPerPerson: number;
+  defaultTrackingIntervalSeconds: number;
+  sosTimeoutMinutes: number;              // Auto-escalate if not acknowledged
+  offlineThresholdMinutes: number;        // When to consider device offline
+  enableVitalsMonitoring: boolean;
+  enableAutomaticSOS: boolean;
+  heartbeatIntervalSeconds: number;
+}
+
+/** Tracker fleet status summary */
+export interface TrackerFleetStatus {
+  totalTrackers: number;
+  activeTrackers: number;
+  sosAlerts: number;
+  lowBatteryCount: number;
+  offlineCount: number;
+  inWaterCount: number;
+  lastUpdated: number;
 }

@@ -1,7 +1,8 @@
 /**
  * Guardian Aegis Search & Rescue Package
- * Multi-sensor missing person search system combining sonar and thermal imaging
- * for ocean, coastal, and vicinity rescue operations
+ * Multi-sensor missing person search system combining sonar, thermal imaging,
+ * resonance mapping, and personal beacons for ocean, coastal, and vicinity
+ * rescue operations
  *
  * @packageDocumentation
  */
@@ -12,6 +13,9 @@ export { DriftPredictor, createDriftPredictor } from './core/drift-predictor';
 
 // Core exports - Thermal
 export { ThermalEngine, createThermalEngine } from './core/thermal-engine';
+
+// Core exports - Resonance
+export { ResonanceEngine, createResonanceEngine } from './core/resonance-engine';
 
 // Service exports
 export {
@@ -31,6 +35,12 @@ export {
   createSensorFusionService,
   type FusionEvent,
 } from './services/sensor-fusion.service';
+
+export {
+  BeaconTrackerService,
+  createBeaconTrackerService,
+  type TrackerEvent,
+} from './services/beacon-tracker.service';
 
 // Type exports
 export type {
@@ -68,6 +78,27 @@ export type {
   ThermalPattern,
   ThermalTrackPoint,
   HotspotShape,
+
+  // Resonance mapping
+  ResonanceMode,
+  ResonanceScan,
+  ResonanceSignature,
+  ResonanceClassification,
+  ResonanceConfig,
+  ResonancePattern,
+
+  // Personal beacons/trackers
+  TrackerDeviceType,
+  TrackerStatus,
+  PersonalTracker,
+  EmergencyContact,
+  TrackerSettings,
+  GeofenceArea,
+  TrackerLocationUpdate,
+  TrackerVitals,
+  SOSAlert,
+  TrackerServiceConfig,
+  TrackerFleetStatus,
 
   // Multi-sensor fusion
   DetectionSource,
@@ -127,35 +158,53 @@ export {
 } from './utils/gold-coast';
 
 // Import types and engines for factory function
-import type { GeoCoordinate, MissingPerson, ThermalEnvironment, FusedDetection } from './types';
+import type {
+  GeoCoordinate,
+  MissingPerson,
+  ThermalEnvironment,
+  FusedDetection,
+  TrackerDeviceType,
+  EmergencyContact,
+  SOSAlert,
+} from './types';
 import { createSonarEngine } from './core/sonar-engine';
 import { createDriftPredictor } from './core/drift-predictor';
 import { createThermalEngine } from './core/thermal-engine';
+import { createResonanceEngine } from './core/resonance-engine';
 import { createMissionService } from './services/mission.service';
 import { createResidenceMappingService } from './services/residence-mapping.service';
 import { createSensorFusionService } from './services/sensor-fusion.service';
+import { createBeaconTrackerService } from './services/beacon-tracker.service';
 
 /**
  * Quick start factory function to create a fully configured multi-sensor search system
- * with both sonar (underwater) and thermal (surface/aerial) detection capabilities
+ * with sonar (underwater), thermal (surface), resonance (vital signs), and beacon tracking
  */
 export function createSearchAndRescueSystem(options?: {
   region?: 'gold_coast' | 'generic';
   enableThermal?: boolean;
   enableSonar?: boolean;
+  enableResonance?: boolean;
+  enableBeacons?: boolean;
 }) {
   const enableSonar = options?.enableSonar ?? true;
   const enableThermal = options?.enableThermal ?? true;
+  const enableResonance = options?.enableResonance ?? true;
+  const enableBeacons = options?.enableBeacons ?? true;
 
   const sonarEngine = createSonarEngine();
   const thermalEngine = createThermalEngine();
+  const resonanceEngine = createResonanceEngine();
   const driftPredictor = createDriftPredictor();
   const missionService = createMissionService(sonarEngine, driftPredictor);
   const residenceMapping = createResidenceMappingService();
+  const beaconTracker = createBeaconTrackerService();
   const sensorFusion = createSensorFusionService(sonarEngine, thermalEngine, {
     enabledSensors: [
       ...(enableSonar ? ['sonar' as const] : []),
       ...(enableThermal ? ['thermal' as const] : []),
+      ...(enableResonance ? ['resonance' as const] : []),
+      ...(enableBeacons ? ['beacon' as const] : []),
     ],
   });
 
@@ -183,12 +232,14 @@ export function createSearchAndRescueSystem(options?: {
     // Core engines
     sonarEngine,
     thermalEngine,
+    resonanceEngine,
     driftPredictor,
 
     // Services
     missionService,
     residenceMapping,
     sensorFusion,
+    beaconTracker,
 
     /**
      * Quick report of a missing person at sea
@@ -211,9 +262,14 @@ export function createSearchAndRescueSystem(options?: {
     getSonarDetections: () => sonarEngine.getHumanDetections(),
 
     /**
-     * Get current human detections from thermal (surface)
+     * Get current human detections from thermal (surface heat signatures)
      */
     getThermalDetections: () => thermalEngine.getHumanHotspots(),
+
+    /**
+     * Get current human detections from resonance (vital signs, buried/submerged)
+     */
+    getResonanceDetections: () => resonanceEngine.getHumanSignatures(),
 
     /**
      * Get all fused detections (combined from all sensors)
@@ -236,9 +292,62 @@ export function createSearchAndRescueSystem(options?: {
     getHypothermiaAlerts: () => thermalEngine.getHypothermiaAlerts(),
 
     /**
-     * Run correlation pass to combine sonar and thermal detections
+     * Run correlation pass to combine all sensor detections
      */
     correlateDetections: () => sensorFusion.correlateAllDetections(),
+
+    // ==================== Personal Beacon/Tracker Functions ====================
+
+    /**
+     * Register a personal tracker (wrist device, phone app, etc.)
+     */
+    registerTracker: (
+      ownerId: string,
+      ownerName: string,
+      deviceType: TrackerDeviceType,
+      options?: {
+        phoneNumber?: string;
+        emergencyContacts?: EmergencyContact[];
+      }
+    ) => beaconTracker.registerTracker(ownerId, ownerName, deviceType, options),
+
+    /**
+     * Get all active SOS alerts
+     */
+    getActiveSOSAlerts: (): SOSAlert[] => beaconTracker.getActiveSOSAlerts(),
+
+    /**
+     * Get tracker fleet status (all registered trackers)
+     */
+    getTrackerFleetStatus: () => beaconTracker.getFleetStatus(),
+
+    /**
+     * Trigger SOS for a tracker
+     */
+    triggerSOS: (trackerId: string) => beaconTracker.triggerSOS(trackerId),
+
+    /**
+     * Resolve an SOS alert
+     */
+    resolveSOS: (alertId: string, isFalseAlarm?: boolean) =>
+      beaconTracker.resolveSOS(alertId, isFalseAlarm),
+
+    // ==================== Vital Signs Detection ====================
+
+    /**
+     * Check vital signs from resonance detection
+     */
+    checkVitalSigns: (signatureId: string) => resonanceEngine.checkVitalSigns(signatureId),
+
+    /**
+     * Get detections with breathing detected
+     */
+    getBreathingDetections: () => resonanceEngine.getBreathingDetections(),
+
+    /**
+     * Get detections with heartbeat detected
+     */
+    getHeartbeatDetections: () => resonanceEngine.getHeartbeatDetections(),
   };
 }
 
