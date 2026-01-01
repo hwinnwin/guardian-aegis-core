@@ -752,3 +752,192 @@ export interface TrackerFleetStatus {
   inWaterCount: number;
   lastUpdated: number;
 }
+
+// ============================================================================
+// VYBEXONR - TWO-WAY RESONANCE COMMUNICATION SYSTEM
+// ============================================================================
+
+/** VybeXonR signal types for two-way communication */
+export type VybeSignalType =
+  | 'sos_distress'            // Emergency distress signal
+  | 'location_ping'           // "I'm here" ping
+  | 'status_ok'               // Person is okay
+  | 'status_injured'          // Person is injured
+  | 'status_trapped'          // Person is trapped/stuck
+  | 'status_drowning'         // Active drowning
+  | 'request_rescue'          // Request immediate rescue
+  | 'acknowledge'             // Acknowledge received signal
+  | 'direction_guide'         // Guide rescuers to location
+  | 'heartbeat_pulse';        // Regular alive signal
+
+/** VybeXonR transmission modes */
+export type VybeTransmissionMode =
+  | 'ultrasonic'              // High-frequency sound (underwater)
+  | 'infrasonic'              // Low-frequency (travels far)
+  | 'vibration_pattern'       // Physical vibration patterns
+  | 'acoustic_modulation'     // Modulated sound waves
+  | 'resonance_burst'         // Short resonance bursts
+  | 'harmonic_sequence';      // Sequence of harmonic tones
+
+/** Personal VybeXonR beacon device */
+export interface VybeBeacon {
+  id: string;
+  ownerId: string;
+  ownerName: string;
+  deviceType: 'wrist_vybe' | 'pendant_vybe' | 'embedded_vybe' | 'phone_vybe';
+  status: VybeBeaconStatus;
+  batteryPercent: number;
+  signalStrength: number;           // 0-100
+  lastTransmission?: VybeTransmission;
+  lastReception?: VybeReception;
+  location?: GeoCoordinate;
+  transmissionMode: VybeTransmissionMode;
+  frequencyHz: number;              // Operating frequency
+  registeredAt: number;
+  settings: VybeBeaconSettings;
+}
+
+/** Beacon operational status */
+export type VybeBeaconStatus =
+  | 'standby'                 // Normal monitoring mode
+  | 'transmitting'            // Actively sending signal
+  | 'receiving'               // Receiving incoming signal
+  | 'sos_active'              // SOS mode engaged
+  | 'low_power'               // Low battery, reduced function
+  | 'submerged'               // Underwater operation
+  | 'offline';                // No signal
+
+/** Beacon configuration settings */
+export interface VybeBeaconSettings {
+  autoSOSOnSubmersion: boolean;
+  autoSOSAfterNoMovementMinutes: number;
+  transmissionPowerLevel: 'low' | 'medium' | 'high' | 'max';
+  heartbeatIntervalSeconds: number;
+  emergencyFrequencyHz: number;     // Frequency for SOS
+  normalFrequencyHz: number;        // Frequency for regular pings
+  enableVibrationFeedback: boolean;
+  enableAudioFeedback: boolean;
+}
+
+/** Outgoing transmission from beacon */
+export interface VybeTransmission {
+  id: string;
+  beaconId: string;
+  signalType: VybeSignalType;
+  mode: VybeTransmissionMode;
+  frequencyHz: number;
+  powerLevel: number;               // dB
+  pattern: VybePattern;
+  location?: GeoCoordinate;
+  timestamp: number;
+  durationMs: number;
+  acknowledged: boolean;
+  acknowledgedAt?: number;
+  acknowledgedBy?: string;          // Rescuer/base station ID
+}
+
+/** Incoming signal received by beacon or base station */
+export interface VybeReception {
+  id: string;
+  receivedBy: string;               // Beacon or station ID
+  sourceBeaconId?: string;          // If known
+  signalType: VybeSignalType;
+  frequencyHz: number;
+  signalStrength: number;           // dB
+  pattern: VybePattern;
+  estimatedLocation?: GeoCoordinate;
+  estimatedDistance?: number;       // meters
+  estimatedDirection?: number;      // degrees
+  timestamp: number;
+  decoded: boolean;
+  decodedMessage?: string;
+}
+
+/** Signal pattern for encoding messages */
+export interface VybePattern {
+  type: 'morse' | 'binary' | 'frequency_shift' | 'amplitude_mod' | 'pulse_sequence';
+  sequence: number[];               // Pattern data
+  repeatCount: number;
+  intervalMs: number;               // Time between pulses
+  encodedData?: string;             // Decoded message if applicable
+}
+
+/** Predefined SOS patterns */
+export interface SOSPattern {
+  name: string;
+  code: string;                     // Human-readable code
+  pattern: VybePattern;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  meaning: string;
+  autoResponse?: VybeSignalType;    // Auto-respond with this signal
+}
+
+/** Two-way communication session */
+export interface VybeCommunicationSession {
+  id: string;
+  initiatorBeaconId: string;
+  responderIds: string[];           // Base stations or other beacons
+  startedAt: number;
+  lastActivityAt: number;
+  status: 'active' | 'waiting_response' | 'acknowledged' | 'completed' | 'timeout';
+  transmissions: VybeTransmission[];
+  receptions: VybeReception[];
+  estimatedPersonLocation?: GeoCoordinate;
+  locationAccuracyMeters?: number;
+  rescueDispatched: boolean;
+  notes?: string;
+}
+
+/** Base station for receiving and transmitting VybeXonR signals */
+export interface VybeBaseStation {
+  id: string;
+  name: string;
+  location: GeoCoordinate;
+  coverageRadiusMeters: number;
+  status: 'online' | 'offline' | 'maintenance';
+  capabilities: VybeTransmissionMode[];
+  frequencyRangeHz: { min: number; max: number };
+  activeBeaconsInRange: number;
+  lastPingAt: number;
+}
+
+/** Triangulation result from multiple stations/beacons */
+export interface VybeTriangulation {
+  id: string;
+  sourceBeaconId?: string;
+  stations: Array<{
+    stationId: string;
+    signalStrength: number;
+    estimatedDistance: number;
+    bearing: number;
+  }>;
+  calculatedLocation: GeoCoordinate;
+  accuracyMeters: number;
+  confidence: ConfidenceLevel;
+  timestamp: number;
+}
+
+/** VybeXonR system configuration */
+export interface VybeSystemConfig {
+  defaultTransmissionMode: VybeTransmissionMode;
+  sosFrequencyHz: number;
+  normalFrequencyHz: number;
+  triangulationEnabled: boolean;
+  minStationsForTriangulation: number;
+  signalTimeoutSeconds: number;
+  autoAcknowledgeSignals: boolean;
+  relaySignalsBetweenStations: boolean;
+  predefinedPatterns: SOSPattern[];
+}
+
+/** VybeXonR network status */
+export interface VybeNetworkStatus {
+  totalBaseStations: number;
+  onlineStations: number;
+  totalBeacons: number;
+  activeBeacons: number;
+  sosAlertsActive: number;
+  activeTriangulations: number;
+  coverageAreaSqKm: number;
+  lastNetworkCheck: number;
+}

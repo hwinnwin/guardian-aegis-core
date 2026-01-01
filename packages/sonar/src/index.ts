@@ -1,8 +1,19 @@
 /**
- * Guardian Aegis Search & Rescue Package
- * Multi-sensor missing person search system combining sonar, thermal imaging,
- * resonance mapping, and personal beacons for ocean, coastal, and vicinity
- * rescue operations
+ * VybeXonR - Guardian Aegis Search & Rescue Package
+ *
+ * Advanced multi-sensor missing person search and two-way communication system
+ * combining sonar, thermal imaging, resonance mapping, and personal beacons
+ * for ocean, coastal, and vicinity rescue operations.
+ *
+ * Key capabilities:
+ * - Sonar detection (underwater acoustic signatures)
+ * - Thermal imaging (surface heat detection, hypothermia alerts)
+ * - Resonance mapping (vital signs: breathing, heartbeat detection)
+ * - Personal beacon tracking (GPS, SOS, fall/water detection)
+ * - VybeXonR two-way resonance communication (vibration/frequency-based signaling)
+ * - Multi-sensor fusion (correlate detections from all sources)
+ * - Drift prediction (ocean current-based location forecasting)
+ * - Triangulation (locate signal sources from base stations)
  *
  * @packageDocumentation
  */
@@ -41,6 +52,12 @@ export {
   createBeaconTrackerService,
   type TrackerEvent,
 } from './services/beacon-tracker.service';
+
+export {
+  VybeXonRService,
+  createVybeXonRService,
+  type VybeEvent,
+} from './services/vybexonr.service';
 
 // Type exports
 export type {
@@ -136,6 +153,22 @@ export type {
   ResidenceMapping,
   KnownLocation,
   RecognitionIntegration,
+
+  // VybeXonR two-way communication
+  VybeSignalType,
+  VybeTransmissionMode,
+  VybeBeacon,
+  VybeBeaconStatus,
+  VybeBeaconSettings,
+  VybeTransmission,
+  VybeReception,
+  VybePattern,
+  SOSPattern,
+  VybeCommunicationSession,
+  VybeBaseStation,
+  VybeTriangulation,
+  VybeSystemConfig,
+  VybeNetworkStatus,
 } from './types';
 
 // Gold Coast utilities
@@ -166,6 +199,8 @@ import type {
   TrackerDeviceType,
   EmergencyContact,
   SOSAlert,
+  VybeSignalType,
+  VybeCommunicationSession,
 } from './types';
 import { createSonarEngine } from './core/sonar-engine';
 import { createDriftPredictor } from './core/drift-predictor';
@@ -175,6 +210,7 @@ import { createMissionService } from './services/mission.service';
 import { createResidenceMappingService } from './services/residence-mapping.service';
 import { createSensorFusionService } from './services/sensor-fusion.service';
 import { createBeaconTrackerService } from './services/beacon-tracker.service';
+import { createVybeXonRService } from './services/vybexonr.service';
 
 /**
  * Quick start factory function to create a fully configured multi-sensor search system
@@ -199,6 +235,7 @@ export function createSearchAndRescueSystem(options?: {
   const missionService = createMissionService(sonarEngine, driftPredictor);
   const residenceMapping = createResidenceMappingService();
   const beaconTracker = createBeaconTrackerService();
+  const vybeXonR = createVybeXonRService();
   const sensorFusion = createSensorFusionService(sonarEngine, thermalEngine, {
     enabledSensors: [
       ...(enableSonar ? ['sonar' as const] : []),
@@ -240,6 +277,7 @@ export function createSearchAndRescueSystem(options?: {
     residenceMapping,
     sensorFusion,
     beaconTracker,
+    vybeXonR,
 
     /**
      * Quick report of a missing person at sea
@@ -348,6 +386,68 @@ export function createSearchAndRescueSystem(options?: {
      * Get detections with heartbeat detected
      */
     getHeartbeatDetections: () => resonanceEngine.getHeartbeatDetections(),
+
+    // ==================== VybeXonR Two-Way Communication ====================
+
+    /**
+     * Register a VybeXonR beacon for two-way resonance communication
+     */
+    registerVybeBeacon: (
+      ownerId: string,
+      ownerName: string,
+      deviceType: 'wrist_vybe' | 'pendant_vybe' | 'embedded_vybe' | 'phone_vybe' = 'wrist_vybe'
+    ) => vybeXonR.registerBeacon(ownerId, ownerName, deviceType),
+
+    /**
+     * Trigger SOS signal via VybeXonR beacon
+     */
+    triggerVybeSOS: (beaconId: string, signalType: VybeSignalType = 'sos_distress') =>
+      vybeXonR.triggerSOS(beaconId, signalType),
+
+    /**
+     * Cancel an active VybeXonR SOS
+     */
+    cancelVybeSOS: (beaconId: string) => vybeXonR.cancelSOS(beaconId),
+
+    /**
+     * Send a signal from a VybeXonR beacon
+     */
+    sendVybeSignal: (beaconId: string, signalType: VybeSignalType, data?: Record<string, unknown>) =>
+      vybeXonR.transmitSignal(beaconId, signalType, data),
+
+    /**
+     * Get all active VybeXonR communication sessions
+     */
+    getActiveVybeSessions: (): VybeCommunicationSession[] => vybeXonR.getActiveSessions(),
+
+    /**
+     * Get VybeXonR network status (base stations, beacons, signal quality)
+     */
+    getVybeNetworkStatus: () => vybeXonR.getNetworkStatus(),
+
+    /**
+     * Register a VybeXonR base station for triangulation
+     */
+    registerVybeBaseStation: (
+      name: string,
+      location: GeoCoordinate,
+      rangeMeters: number = 5000
+    ) => vybeXonR.registerBaseStation(name, location, rangeMeters),
+
+    /**
+     * Attempt to triangulate a signal source from base station readings
+     */
+    triangulateVybeSignal: (beaconId: string) => vybeXonR.attemptTriangulation(beaconId),
+
+    /**
+     * Start listening for incoming VybeXonR signals
+     */
+    startVybeListening: () => vybeXonR.startListening(),
+
+    /**
+     * Stop listening for incoming VybeXonR signals
+     */
+    stopVybeListening: () => vybeXonR.stopListening(),
   };
 }
 
