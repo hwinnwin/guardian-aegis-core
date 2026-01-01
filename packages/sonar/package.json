@@ -1,0 +1,33 @@
+{
+  "name": "@guardian/sonar",
+  "version": "1.0.0",
+  "description": "Sonar-based missing person search system for ocean and coastal rescue operations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist coverage"
+  },
+  "keywords": [
+    "sonar",
+    "missing-person",
+    "search-rescue",
+    "ocean-search",
+    "coastal-rescue",
+    "guardian"
+  ],
+  "author": "Lumen Guardian Team",
+  "license": "MIT",
+  "dependencies": {
+    "nanoid": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4",
+    "@vitest/coverage-v8": "^1.0.4"
+  }
+}
