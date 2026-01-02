@@ -941,3 +941,192 @@ export interface VybeNetworkStatus {
   coverageAreaSqKm: number;
   lastNetworkCheck: number;
 }
+
+// =============================================================================
+// VYBEXONR INFANT COMMUNICATION - Baby cry/need interpretation
+// =============================================================================
+
+/** Types of baby cry patterns detectable through resonance */
+export type BabyCryPattern =
+  | 'hunger_cry'           // Low-pitched, rhythmic, "neh" sound
+  | 'tired_cry'            // Breathy, yawn-like, continuous
+  | 'discomfort_cry'       // Fussy, whiny, squirming
+  | 'pain_cry'             // High-pitched, sharp, sudden
+  | 'colic_cry'            // Intense, sustained, inconsolable
+  | 'overstimulated_cry'   // Building, overwhelmed
+  | 'lonely_cry'           // Intermittent, attention-seeking
+  | 'sick_cry'             // Weak, whimpering, unusual
+  | 'startled_cry'         // Sudden, brief, moro reflex
+  | 'unknown';
+
+/** Baby's interpreted need based on multi-signal analysis */
+export type BabyNeed =
+  | 'feeding'              // Hungry, rooting reflex
+  | 'sleep'                // Tired, needs rest
+  | 'diaper_change'        // Wet/soiled diaper
+  | 'temperature'          // Too hot or cold
+  | 'comfort'              // Needs holding/soothing
+  | 'burping'              // Gas discomfort
+  | 'teething'             // Teething pain
+  | 'illness'              // Possible sickness
+  | 'overstimulation'      // Needs calm environment
+  | 'boredom'              // Needs engagement
+  | 'unknown';
+
+/** Baby state detected through resonance/movement patterns */
+export type BabyState =
+  | 'deep_sleep'           // Quiet, minimal movement
+  | 'light_sleep'          // REM, some movement
+  | 'drowsy'               // Transitioning
+  | 'quiet_alert'          // Calm, attentive
+  | 'active_alert'         // Moving, engaged
+  | 'fussy'                // Agitated but manageable
+  | 'crying'               // Active distress
+  | 'inconsolable';        // Needs immediate attention
+
+/** Cry acoustic analysis */
+export interface CryAcousticSignature {
+  fundamentalFrequencyHz: number;        // Base pitch (typically 300-600 Hz)
+  intensityDb: number;                    // Loudness
+  melodyPattern: 'rising' | 'falling' | 'flat' | 'varied';
+  rhythmPattern: 'rhythmic' | 'arrhythmic' | 'staccato' | 'continuous';
+  pausePattern: 'regular_pauses' | 'no_pauses' | 'gasping';
+  harmonicRichness: number;               // 0-1, complexity of sound
+  durationMs: number;
+  recordedAt: number;
+}
+
+/** Baby vital signs from resonance detection */
+export interface BabyVitals {
+  heartRateBpm: number;                   // Normal: 100-160 for infants
+  respiratoryRate: number;                // Breaths per minute (30-60 normal)
+  movementLevel: 'still' | 'minimal' | 'active' | 'restless' | 'thrashing';
+  bodyTemperature?: number;               // If thermal sensor available
+  skinMoisture?: 'dry' | 'normal' | 'sweaty';
+  lastFeedingAgo?: number;                // Minutes since last feeding
+  lastDiaperChange?: number;              // Minutes since last change
+  sleepDuration?: number;                 // Minutes in current sleep
+  recordedAt: number;
+}
+
+/** Registered baby profile for pattern learning */
+export interface BabyProfile {
+  id: string;
+  name: string;
+  birthDate: number;                      // Timestamp
+  ageMonths: number;
+  normalHeartRateRange: { min: number; max: number };
+  normalTempRange: { min: number; max: number };
+  feedingSchedule?: number[];             // Typical feeding times (hours)
+  sleepPattern?: 'short_napper' | 'long_napper' | 'irregular';
+  knownAllergies?: string[];
+  healthConditions?: string[];
+  learnedCryPatterns: LearnedCryPattern[];
+  registeredAt: number;
+  lastUpdated: number;
+}
+
+/** Machine-learned cry pattern specific to a baby */
+export interface LearnedCryPattern {
+  id: string;
+  babyId: string;
+  cryType: BabyCryPattern;
+  need: BabyNeed;
+  acousticSignature: CryAcousticSignature;
+  confirmedByCaregiver: boolean;
+  occurrenceCount: number;
+  lastOccurred: number;
+  accuracy: number;                       // 0-1, how reliable this pattern is
+}
+
+/** Baby cry detection event */
+export interface BabyCryDetection {
+  id: string;
+  babyId?: string;                        // If matched to profile
+  timestamp: number;
+  acousticSignature: CryAcousticSignature;
+  detectedPattern: BabyCryPattern;
+  patternConfidence: ConfidenceLevel;
+  interpretedNeed: BabyNeed;
+  needConfidence: ConfidenceLevel;
+  currentState: BabyState;
+  vitals?: BabyVitals;
+  suggestedActions: string[];
+  urgency: 'low' | 'medium' | 'high' | 'critical';
+  durationSeconds: number;
+}
+
+/** Baby monitoring session */
+export interface BabyMonitorSession {
+  id: string;
+  babyId: string;
+  startedAt: number;
+  endedAt?: number;
+  status: 'active' | 'paused' | 'ended';
+  detections: BabyCryDetection[];
+  stateHistory: Array<{
+    state: BabyState;
+    timestamp: number;
+    durationMinutes: number;
+  }>;
+  vitalsHistory: BabyVitals[];
+  alerts: BabyAlert[];
+  caregiverNotified: boolean;
+}
+
+/** Alert for caregiver */
+export interface BabyAlert {
+  id: string;
+  babyId: string;
+  type: 'cry_detected' | 'unusual_pattern' | 'vital_anomaly' | 'prolonged_crying' | 'no_movement' | 'fever_detected';
+  severity: 'info' | 'warning' | 'urgent' | 'emergency';
+  message: string;
+  detection?: BabyCryDetection;
+  vitals?: BabyVitals;
+  timestamp: number;
+  acknowledged: boolean;
+  acknowledgedAt?: number;
+  actionsTaken?: string[];
+}
+
+/** Cry interpretation result with caregiver guidance */
+export interface CryInterpretation {
+  detection: BabyCryDetection;
+  primaryNeed: BabyNeed;
+  primaryNeedConfidence: number;          // 0-1
+  alternativeNeeds: Array<{ need: BabyNeed; confidence: number }>;
+  suggestedResponses: CaregiverAction[];
+  contextFactors: string[];               // e.g., "Last fed 3 hours ago", "Nap overdue"
+  comparisonToBaseline: 'normal' | 'slightly_unusual' | 'unusual' | 'concerning';
+}
+
+/** Suggested action for caregiver */
+export interface CaregiverAction {
+  action: string;
+  priority: number;                       // 1 = try first
+  estimatedEffectivenessPercent: number;
+  timeToTryMinutes: number;
+  notes?: string;
+}
+
+/** Baby interpreter service configuration */
+export interface BabyInterpreterConfig {
+  sensitivityLevel: 'low' | 'medium' | 'high';
+  cryDetectionThresholdDb: number;
+  enableVitalMonitoring: boolean;
+  enablePatternLearning: boolean;
+  alertOnProlongedCrying: boolean;
+  prolongedCryingThresholdMinutes: number;
+  alertOnVitalAnomalies: boolean;
+  notificationChannels: ('app' | 'sms' | 'vibration' | 'sound')[];
+}
+
+/** Baby interpreter network status */
+export interface BabyInterpreterStatus {
+  registeredBabies: number;
+  activeMonitoringSessions: number;
+  totalCryDetectionsToday: number;
+  learnedPatternsCount: number;
+  averageInterpretationAccuracy: number;
+  lastCalibration: number;
+}

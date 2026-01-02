@@ -14,6 +14,7 @@
  * - Multi-sensor fusion (correlate detections from all sources)
  * - Drift prediction (ocean current-based location forecasting)
  * - Triangulation (locate signal sources from base stations)
+ * - Baby interpreter (infant cry analysis, need interpretation, caregiver guidance)
  *
  * @packageDocumentation
  */
@@ -58,6 +59,12 @@ export {
   createVybeXonRService,
   type VybeEvent,
 } from './services/vybexonr.service';
+
+export {
+  BabyInterpreterService,
+  createBabyInterpreterService,
+  type BabyEvent,
+} from './services/baby-interpreter.service';
 
 // Type exports
 export type {
@@ -169,6 +176,22 @@ export type {
   VybeTriangulation,
   VybeSystemConfig,
   VybeNetworkStatus,
+
+  // Baby interpreter - infant communication
+  BabyCryPattern,
+  BabyNeed,
+  BabyState,
+  CryAcousticSignature,
+  BabyVitals,
+  BabyProfile,
+  LearnedCryPattern,
+  BabyCryDetection,
+  BabyMonitorSession,
+  BabyAlert,
+  CryInterpretation,
+  CaregiverAction,
+  BabyInterpreterConfig,
+  BabyInterpreterStatus,
 } from './types';
 
 // Gold Coast utilities
@@ -211,6 +234,8 @@ import { createResidenceMappingService } from './services/residence-mapping.serv
 import { createSensorFusionService } from './services/sensor-fusion.service';
 import { createBeaconTrackerService } from './services/beacon-tracker.service';
 import { createVybeXonRService } from './services/vybexonr.service';
+import { createBabyInterpreterService } from './services/baby-interpreter.service';
+import type { BabyNeed, CryInterpretation, CryAcousticSignature, BabyAlert } from './types';
 
 /**
  * Quick start factory function to create a fully configured multi-sensor search system
@@ -236,6 +261,7 @@ export function createSearchAndRescueSystem(options?: {
   const residenceMapping = createResidenceMappingService();
   const beaconTracker = createBeaconTrackerService();
   const vybeXonR = createVybeXonRService();
+  const babyInterpreter = createBabyInterpreterService();
   const sensorFusion = createSensorFusionService(sonarEngine, thermalEngine, {
     enabledSensors: [
       ...(enableSonar ? ['sonar' as const] : []),
@@ -278,6 +304,7 @@ export function createSearchAndRescueSystem(options?: {
     sensorFusion,
     beaconTracker,
     vybeXonR,
+    babyInterpreter,
 
     /**
      * Quick report of a missing person at sea
@@ -448,6 +475,69 @@ export function createSearchAndRescueSystem(options?: {
      * Stop listening for incoming VybeXonR signals
      */
     stopVybeListening: () => vybeXonR.stopListening(),
+
+    // ==================== Baby Interpreter - Infant Communication ====================
+
+    /**
+     * Register a baby profile for personalized cry interpretation
+     */
+    registerBaby: (
+      name: string,
+      birthDate: number,
+      options?: {
+        healthConditions?: string[];
+        feedingSchedule?: number[];
+        sleepPattern?: 'short_napper' | 'long_napper' | 'irregular';
+      }
+    ) => babyInterpreter.registerBaby(name, birthDate, options),
+
+    /**
+     * Start monitoring session for a baby
+     */
+    startBabyMonitoring: (babyId: string) => babyInterpreter.startMonitoring(babyId),
+
+    /**
+     * Stop monitoring session
+     */
+    stopBabyMonitoring: (sessionId: string) => babyInterpreter.stopMonitoring(sessionId),
+
+    /**
+     * Process cry audio and get interpretation with suggested actions
+     */
+    interpretBabyCry: (
+      babyId: string | undefined,
+      acousticSignature: CryAcousticSignature
+    ): CryInterpretation => babyInterpreter.processCryAudio(babyId, acousticSignature),
+
+    /**
+     * Confirm or correct interpretation (helps system learn baby's patterns)
+     */
+    confirmBabyInterpretation: (
+      detectionId: string,
+      actualNeed: BabyNeed,
+      wasCorrect: boolean
+    ) => babyInterpreter.confirmInterpretation(detectionId, actualNeed, wasCorrect),
+
+    /**
+     * Get all active baby alerts
+     */
+    getActiveBabyAlerts: (): BabyAlert[] => babyInterpreter.getActiveAlerts(),
+
+    /**
+     * Acknowledge a baby alert
+     */
+    acknowledgeBabyAlert: (alertId: string, actionsTaken?: string[]) =>
+      babyInterpreter.acknowledgeAlert(alertId, actionsTaken),
+
+    /**
+     * Get baby interpreter status
+     */
+    getBabyInterpreterStatus: () => babyInterpreter.getStatus(),
+
+    /**
+     * Get all registered babies
+     */
+    getAllBabies: () => babyInterpreter.getAllBabies(),
   };
 }
 
